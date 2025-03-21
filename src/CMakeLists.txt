@@ -46,6 +46,10 @@ FILE(GLOB_RECURSE SOURCES_S ${SRC_DIR}/coroutine/*.S)
 include_directories(${PROJECT_THIRDPARTY_DIR}/valgrind)
 
 
+# test
+include_directories(${SRC_DIR}/test)
+
+
 message("!!!!!!! CMAKE_SOURCE_DIR = " "${CMAKE_SOURCE_DIR}/src/transaction")
 
 
