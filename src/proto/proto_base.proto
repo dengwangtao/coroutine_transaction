@@ -1,0 +1,56 @@
+syntax = "proto2";
+
+
+
+message SSTrace
+{
+    optional uint64 trace_id_high = 1;      //uuid_t high_
+    optional uint64 trace_id_low = 2;       //uuid_t low_
+    optional uint64 span_id = 3;
+    optional uint64 trace_start_time = 4;
+}
+
+message SSHead
+{
+    required int32 cmd = 1;
+
+    // This field is only meaningful for request and response cmds. For TX
+    // requests, it's set in the framework. For RX requests, if the req_id is
+    // not set, it will set as the receiver's local generated ID.
+    optional uint64 req_id = 2;
+    optional uint64 route_key = 3;
+    // note: 该tran_id的语义应该明确：
+    // 请求方：请求进程的事务/异步id，应答方回包：该id为请求方id的透传（如果有的话）
+    // 一些透传性质的id，或者别带有唤醒意义的id不应该放到该字段，请到业务侧请求自行透传
+    optional uint64 tran_id = 4;
+    optional int32 body_len = 5;
+
+    // 源和目的地址由消息发送方设置, 中间的中转服务器不能修改
+    optional int32 src_addr = 6;
+    optional int32 dest_addr = 7;
+
+    // Used by response only. The name is consistent with CSHead.
+    // If result is not zero, some error occurs and the response body may be
+    // empty. So never access the response body when result is not zero.
+    optional int32 result = 9;
+
+    // route_key is used by the sender to route a message. forward_key is used
+    // by the mediate node(routerd) to forward a message. Sometimes they are
+    // the same but don't rely on that. Always set the forward_key if any of
+    // the E_SS_HEAD_FLAG_FORWARD_XXX flags is set.
+    optional uint64 forward_key = 10;
+
+    // Used for message trace.
+    optional SSTrace trace_info = 11;
+    optional uint32 cs_req_id = 12;
+}
+
+
+enum SSCmdDef
+{
+    E_SS_CMD_INVALID = 0;
+    E_S2DB_CMD_OP_ACCOUNT_INFO_REQ = 1;
+    E_DB2S_CMD_OP_ACCOUNT_INFO_RSP = 2;
+    E_S2DB_CMD_OP_USER_ONLINE_INFO_REQ = 3;
+    E_DB2S_CMD_OP_USER_ONLINE_INFO_RSP = 4;
+}

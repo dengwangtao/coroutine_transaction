@@ -1,0 +1,10 @@
+syntax = "proto2";
+
+
+enum DWTError
+{
+    E_ERROR_OK = 0;
+    E_ERROR_LOGIC = 5;
+    E_ERROR_INVALID_PARA = 10;
+
+}

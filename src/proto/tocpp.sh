@@ -1,0 +1,1 @@
+protoc error_define.proto proto_base.proto --cpp_out=.
