@@ -37,38 +37,37 @@
 .align 16
 MakeContext:
     /* first arg of MakeContext() == top of context-stack */
-    movq  %rdi, %rax
+    movq  %rdi, %rax    ; 第一个参数 rdi 是用户提供的栈顶地址，存入 rax
 
     /* shift address in RAX to lower 16 byte boundary */
-    andq  $-16, %rax
+    andq  $-16, %rax    ; 将 rax 向下对齐到 16 字节边界
 
     /* reserve space for context-data on context-stack */
     /* size for fc_mxcsr .. RIP + return-address for context-function */
     /* on context-function entry: (RSP -0x8) % 16 == 0 */
-    leaq  -0x48(%rax), %rax
+    leaq  -0x48(%rax), %rax ; 从 rax 中减去 0x48（72字节），预留上下文空间
 
     /* third arg of MakeContext() == address of context-function */
-    movq  %rdx, 0x38(%rax)
+    movq  %rdx, 0x38(%rax)  ; 第三个参数 rdx 是协程函数地址，存入 0x38 偏移处（RIP 位置）
 
     /* save MMX control- and status-word */
-    stmxcsr  (%rax)
+    stmxcsr  (%rax) ; 保存 MXCSR（SIMD 控制状态）到 0x0 偏移处（fc_mxcsr）
     /* save x87 control-word */
-    fnstcw   0x4(%rax)
+    fnstcw   0x4(%rax)  ; 保存 x87 控制字到 0x4 偏移处（fc_x87_cw）
 
     /* compute abs address of label finish */
-    leaq  finish(%rip), %rcx
+    leaq  finish(%rip), %rcx    ; 计算 finish 标签的绝对地址，存入 rcx
     /* save address of finish as return-address for context-function */
     /* will be entered after context-function returns */
-    movq  %rcx, 0x40(%rax)
-
-    ret /* return pointer to context-data */
+    movq  %rcx, 0x40(%rax)  ; 将 finish 地址存入 0x40 偏移处（EXIT 字段）
+    ret /* return pointer to context-data */ ; 返回 rax（指向初始化后的上下文数据）
 
 finish:
     /* exit code is zero */
-    xorq  %rdi, %rdi
+    xorq  %rdi, %rdi    ; 将退出代码设为 0（rdi=0）
     /* exit application */
-    call  _exit@PLT
-    hlt
+    call  _exit@PLT     ; 调用 exit(0) 结束程序
+    hlt   ; 停机指令（通常不会执行）
 .size MakeContext,.-MakeContext
 
 /* Mark that we don't need executable stack. */
