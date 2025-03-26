@@ -41,6 +41,10 @@ public: // static functions
     {
         return config_tz_sec_;
     }
+    static void SetConfigTZOffsetSec(int32_t seconds)
+    {
+        config_tz_sec_ = seconds;
+    }
 
 
 

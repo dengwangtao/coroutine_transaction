@@ -1,8 +1,12 @@
-#include "transaction/transaction_mem.h"
-#include "transaction/transaction_instance.h"
+#include "transaction_mem.h"
 
 
-void DeleteTransactionInst(TransactionInstance* inst)
+TransactionInstance* TransactionMem::CreateTransactionInst(s32 type, u64 owner_id)
+{
+    return new TransactionInstance(type, owner_id);
+}
+
+void TransactionMem::DeleteTransactionInst(TransactionInstance* inst)
 {
     delete inst;
 }

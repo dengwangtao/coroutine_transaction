@@ -6,6 +6,8 @@ const std::string DateTime::kDateTimeTzFormat = "%Y-%m-%d %H:%M:%S %z";
 const std::string DateTime::kOffsetFormat = "%H:%M:%S";
 
 
+int64_t DateTime::config_tz_sec_ = 0;
+
 bool DateTime::IsSameDay(int64_t now, int64_t old, int64_t offset)
 {
     return GetDayStartTime(now, offset) == GetDayStartTime(old, offset);

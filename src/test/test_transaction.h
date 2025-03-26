@@ -7,9 +7,9 @@
 #include "common_def.h"
 #include "boost_context.h"
 #include "fstream"
-#include "transaction/transaction_server.h"
+#include "transaction_server.h"
 #include "trans_type.pb.h"
-#include "transaction/transaction.h"
+#include "transaction.h"
 
 // ==================== 事务类型定义 ====================
 
@@ -91,6 +91,20 @@ int main(int argc, char *argv[])
     LogInfo() << "begin main call ...";
 
     g_trans_server_ptr = std::unique_ptr<TestTransactionServer>(new TestTransactionServer());
+    if (! g_trans_server_ptr)
+    {
+        LogFatal() << "new TestTransactionServer failed";
+        return -1;
+    }
+    g_trans_server_ptr->Init();
+
+    u64 owner = 20010606;
+    TransactionInstance* tran_inst = nullptr;
+    g_trans_server_ptr->StartCommonTransaction(
+        EnterGameTransaction::Instance(),
+        owner,
+        &tran_inst
+    );
 
     return 0;
 }

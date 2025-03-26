@@ -108,8 +108,7 @@ private:
     s32 waiting_index() const { return waiting_index_; }
     void set_waiting_index(s32 v) { waiting_index_ = v; }
 
-    // Free the memory of this object. Don't call this directly. Call
-    // SafeRelease instead.
+    // 释放此对象的内存. 不要直接call, call SafeRelease
     virtual void Release();
 
     const u64 id_ = 0;                // 自身id

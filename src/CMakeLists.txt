@@ -54,10 +54,14 @@ include_directories(${PROJECT_THIRDPARTY_DIR}/valgrind)
 include_directories(${SRC_DIR}/test)
 
 
+set(ALL_DIR ${PROTO_CODE} ${SOURCES_S} ${COMMON_CODE} ${COROUTINE_CODE} ${TRANSACTION_CODE} ${TIMER_CODE})
+
 message("!!!!!!! CMAKE_SOURCE_DIR = " "${CMAKE_SOURCE_DIR}/src/transaction")
 
+foreach(d ${ALL_DIR})
+    message("File = " "${d}")
+endforeach()
 
-set(ALL_DIR ${PROTO_CODE} ${SOURCES_S} ${COMMON_CODE} ${COROUTINE_CODE} ${TRANSACTION_CODE} ${TIMER_CODE})
 
 add_executable(main main.cpp ${ALL_DIR})
 

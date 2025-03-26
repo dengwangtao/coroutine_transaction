@@ -3,9 +3,14 @@
 #define SRC_TRANSACTION_TRANSACTION_MEM_H_
 
 
-class TransactionInstance;
+#include "transaction_instance.h"
 
-void DeleteTransactionInst(TransactionInstance* inst);
+namespace TransactionMem
+{
+    TransactionInstance* CreateTransactionInst(s32 type, u64 owner_id);
+
+    void DeleteTransactionInst(TransactionInstance* inst);
+}
 
 
 

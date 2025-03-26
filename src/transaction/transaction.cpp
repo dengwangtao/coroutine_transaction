@@ -7,7 +7,7 @@
 #include "coroutine_def.h"
 #include "transaction_server.h"
 #include "transaction_instance.h"
-#include "transaction/transaction_mgr.h"
+#include "transaction_mgr.h"
 #include "cs_req_id_util.h"
 #include "gen_guid.h"
 
@@ -20,6 +20,7 @@ Transaction::Transaction(s32 type, bool is_need_undo)
       is_need_undo_{is_need_undo}
 {
     demangled_cls_name_[0] = '\0';
+    cmd_array_.reserve(kDefaultCmdCount);
 }
 
 Transaction::~Transaction()
@@ -110,6 +111,11 @@ void Transaction::RunCommandOnInstance(TransactionInstance &inst, int index)
         inst.set_curr_index(i);
 
         Command *command = cmd_array_[i];
+        if (! command)
+        {
+            LogFatal() << "cmd is null, index=" << i;
+            continue;
+        }
 
         TranLog(Debug) << _LogKV2("inst", inst.id(), command->GetName()) << "::Do owner=" << inst.owner_id();
 

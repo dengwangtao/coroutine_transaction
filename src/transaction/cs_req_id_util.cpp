@@ -1,7 +1,7 @@
 #include "cs_req_id_util.h"
 #include "transaction.h"
 #include "proto_base.pb.h"
-#include "transaction/transaction_instance.h"
+#include "transaction_instance.h"
 
 std::vector<uint32_t> cs_req_id_stack_{};
 

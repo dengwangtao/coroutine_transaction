@@ -1,6 +1,6 @@
 #include "transaction_instance.h"
 #include "transaction_server.h"
-#include "transaction/transaction_mem.h"
+#include "transaction_mem.h"
 #include "gen_guid.h"
 
 
@@ -33,6 +33,10 @@ void TransactionInstance::TransactionOnTimeout(
     }
 }
 
+
+
+
+
 TransactionInstance::TransactionInstance(s32 type, u64 owner_id)
     : id_{ GenGUID() },
       owner_id_{owner_id},
@@ -56,7 +60,7 @@ TransactionInstance::~TransactionInstance()
 
 void TransactionInstance::Release()
 {
-    DeleteTransactionInst(this);
+    TransactionMem::DeleteTransactionInst(this);
 }
 
 void TransactionInstance::SafeRelease()

@@ -16,6 +16,7 @@ enum DWTError
 
 
     E_ERROR_ABORT_TRAN = 1000;
+    E_ERROR_TRAN_INST_NOT_FOUND = 1001;
 
 }
 

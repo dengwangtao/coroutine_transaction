@@ -21,7 +21,11 @@ s32 BoostCoroutine::CreateWorkRoutine(BoostCoroutine& main, u64 id, s32 stack_si
 
     if (stack_size <= 0 || page_size <= 0 || id == 0 || nullptr == func)
     {
-        LogError() << "invalid args";
+        LogError()  << "invalid args, params: "
+                    << _LogKV("stack_size", stack_size)
+                    << _LogKV("page_size", page_size)
+                    << _LogKV("id", id)
+                    << _LogKV("func", func);
         return -1;
     }
 

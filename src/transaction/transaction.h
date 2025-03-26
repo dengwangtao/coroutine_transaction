@@ -61,7 +61,7 @@ private:
     static void TransactionCoroutineResumeEntry(void* param);
 
 protected:
-    std::array<Command*, kDefaultCmdCount> cmd_array_;
+    std::vector<Command*> cmd_array_;
     const s32 type_;
     const bool is_need_undo_; // 执行成功是否需要执行undo流程
     mutable char demangled_cls_name_[kMaxDemangledClassNameSize];
