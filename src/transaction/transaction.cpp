@@ -68,15 +68,20 @@ s32 Transaction::Start(TransactionInstance *inst)
         return E_ERROR_LOGIC;
     }
 
+    // TODO: 待梳理
     (void) cs_req_id_util::SetTranInst(*inst);
     
 
+    LogDebug() << "Ready Create A Coroutine: " << _LogKV("stack_size", inst->stack_size())
+               << _LogKV("tran_id", inst->id()) << _LogKV("owner", inst->owner_id());
+
+    // 创建工作协程
     u64 coroutine_id = 0;
     s32 ret = g_trans_server_ptr->co_scheduler()->CreateWorkRoutine(
-            inst->stack_size(),
-            Transaction::TransactionCoroutineBootEntry,
-            (void*)inst->id(),
-            coroutine_id
+            inst->stack_size(), // 协程栈的大小
+            Transaction::TransactionCoroutineBootEntry, // 协程入口函数
+            (void*)inst->id(), // 入口函数参数
+            coroutine_id // 传出参数, 协程id
     );
 
     if (ret != 0)
@@ -85,13 +90,18 @@ s32 Transaction::Start(TransactionInstance *inst)
         return ret;
     }
 
+    LogDebug() << "Create A Coroutine Success: " << _LogK(coroutine_id);
+
+    // 设置协程id到事务实例中
     inst->set_coroutine_id(coroutine_id);
 
+    // 切换到该协程
     ret = g_trans_server_ptr->co_scheduler()->SwapToWorkRoutine(coroutine_id);
     if (ret != 0)
     {
         inst->set_coroutine_id(0);
 
+        // 销毁协程
         (void) g_trans_server_ptr->co_scheduler()->DestroyWorkRoutine(coroutine_id);
         TranLog(Error) << "SwapToWorkRoutine failed, ret=" << ret;
         return ret;

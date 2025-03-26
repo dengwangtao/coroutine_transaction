@@ -19,14 +19,16 @@ public:
     Transaction(s32 type, bool is_need_undo);
     virtual ~Transaction();
 
-    // If this function succeeds, the memory of inst is taken over. So we use a
-    // pointer param here.
+    /**
+     * 如果此函数成功，inst的内存将被接管。所以我们在这里使用指针参数。
+     */
     s32 Start(TransactionInstance *inst);
 
     s32 Resume(TransactionInstance &inst);
 
-    // Must be called in the main routine so the business layer can write
-    // logic easily.
+    /**
+     * 必须在主协程中调用，以便业务层可以更简单的编写逻辑
+     */
     void HandleResult(TransactionInstance &inst);
 
     s32 type() const { return type_; }
@@ -46,8 +48,9 @@ private:
 
     virtual s32 OnStart(TransactionInstance& inst) { return 0; }
 
-    // The following functions are called in the main routine instead of the
-    // work coroutine.
+    /**
+     * 下面的函数在主例程中调用，而不是在工作协程中调用
+     */
     virtual s32 OnSuccess(TransactionInstance &inst) { return 0; }
     virtual s32 OnFail(TransactionInstance &inst) { return 0; }
     virtual s32 OnAbort(TransactionInstance& inst) { return OnFail(inst); }
@@ -63,8 +66,10 @@ protected:
     const bool is_need_undo_; // 执行成功是否需要执行undo流程
     mutable char demangled_cls_name_[kMaxDemangledClassNameSize];
 
-    /// 这个地方不能定义任何和具体事务相关的变量，和具体事务相关的变量必须定义在TransactionInstance中
-    // 否则会因为协程切换的原因，被其他实例改写，造成逻辑错误
+    /**
+     * 这个地方不能定义任何和具体事务相关的变量，和具体事务相关的变量必须定义在TransactionInstance中
+     * 否则会因为协程切换的原因，被其他实例改写，造成逻辑错误
+     */
 };
 
 #endif // SRC_TRANSACTION_TRANSACTION_H
