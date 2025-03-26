@@ -63,25 +63,25 @@ s32 TranInstMgr::MarkTranInstDelayDestroy(TransactionInstance* inst)
 {
     assert(inst != nullptr);
 
-    trace_tlog("tran inst=%d:%lu",  inst->type(), inst->id());
+    LogTrace() << _LogKV2("tran inst", inst->type(), inst->id());
 
     if (inst->is_delay_destroying())
     {
-        error_tlog("inst=%lu is already delay destroying", inst->id());
-        return E_WX_DUPLICATED_OPERATION;
+        LogError() << _LogKV("inst", inst->id()) << " is already delay destroying";
+        return E_ERROR_DUPLICATED_OPERATION;
     }
 
     inst->set_is_delay_destroying(true);
 
     if (!destroy_list_.insert(inst).second)
     {
-        error_tlog("inst=%lu is already in destroy list", inst->id());
+        LogError() << _LogKV("inst", inst->id()) << "is already in destroy list";
     }
 
     if (trans_map_.erase(inst->id()) == 0)
     {
-        error_tlog("find transaction failed, id=%lu", inst->id());
-        return E_WX_ERROR_LOGIC;
+        LogError() << "find transaction failed, id=" << inst->id();
+        return E_ERROR_LOGIC;
     }
 
     return 0;
@@ -105,7 +105,7 @@ s32 TranInstMgr::Resume()
         s32 ret = inst->Resume();
         if (ret != 0)
         {
-            error_tlog("tran=%d:%lu resume failed", type, id);
+            LogError() << _LogKV2("tran", type, id) << "resume failed";
         }
     }
     return 0;
