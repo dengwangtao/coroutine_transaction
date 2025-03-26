@@ -23,8 +23,7 @@ public:
 
     s32 SendMsgEvent(s32 type, void* msg);
 
-    // Maybe we can add a TransactionEventContext to pass all the necessary
-    // information.
+    // 也许我们可以添加一个TransactionEventContext来传递所有必要的信息
     s32 SendMsgEvent(s32 type, const SSHead &head, const google::protobuf::Message &msg);
 
     s32 Wait(s32* events, s32 event_count, s32 timeout_ms);

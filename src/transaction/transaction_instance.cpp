@@ -180,7 +180,11 @@ s32 TransactionInstance::Wait(s32 *events, s32 event_count, s32 timeout_ms)
 {
     if (NULL == events || event_count <= 0 || timeout_ms <= 0 || event_count > CommonUtil::array_size(events_))
     {
-        LogError() << "invlaid args";
+        LogError()  << "invlaid args:"
+                    << _LogKV("events", events)
+                    << _LogKV("event_count", event_count)
+                    << _LogKV("timeout_ms", timeout_ms)
+                    << _LogKV("array_size", CommonUtil::array_size(events_));
         return E_ERROR_INVALID_PARA;
     }
 
