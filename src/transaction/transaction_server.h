@@ -5,9 +5,9 @@
 #include "common_def.h"
 #include "coroutine/coroutine_scheduler.h"
 #include "transaction_mgr.h"
+#include "svr_timer.h"
 
 class Transaction;
-class CoroutineScheduler;
 
 class TransactionServer
 {
@@ -30,10 +30,16 @@ public:
     {
         return tran_mgr_ptr_;
     }
+
+    TimerMgr* timer_mgr() const
+    {
+        return timer_mgr_ptr_;
+    }
 private:
 
     CoroutineScheduler* scheduler_ptr_ = nullptr;
     TranInstMgr* tran_mgr_ptr_ = nullptr;
+    TimerMgr* timer_mgr_ptr_ = nullptr;
 
 };
 

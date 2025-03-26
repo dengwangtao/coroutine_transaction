@@ -15,6 +15,9 @@ using s64 = int64_t;
 
 
 
+#define INVALID_TIMER_ID      0ULL
+
+
 struct uuid_t
 {
     u64 high_;
@@ -121,6 +124,12 @@ public:
         return GetDemangledName(typeid(*p).name(), buf, len);
     }
 
+
+    template <typename T, s32 N>
+    inline static constexpr s32 array_size(const T (&)[N])
+    {
+        return N;
+    }
 };
 
 #endif  // SRC_COMMON_COMMON_DEF_H_

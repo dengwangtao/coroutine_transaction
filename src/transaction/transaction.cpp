@@ -9,11 +9,17 @@
 #include "transaction_instance.h"
 #include "transaction/transaction_mgr.h"
 #include "cs_req_id_util.h"
+#include "gen_guid.h"
+#include "transaction/transaction_mem.h"
 
 
 
 #define TranLog(LOG_LEVEL) \
     Log##LOG_LEVEL() << "[" << GetName() << "] "
+
+#define TranInstLog(LOG_LEVEL) \
+    Log##LOG_LEVEL()    << _LogKV2("tran", type_, id_) \
+                        << _LogKV("owner", owner_id) << " "
 
 Transaction::Transaction(s32 type, bool is_need_undo)
     : type_ { type },
@@ -330,7 +336,7 @@ s32 Transaction::RealResume(TransactionInstance &inst)
     s32 ret = g_trans_server_ptr->tran_mgr()->MarkTranInstDelayDestroy(&inst);
     if (ret != 0)
     {
-        error_tlog_tran("MarkTranInstDelayDestroy=%lu failed, ret=%d", tran_id, ret);
+        TranLog(Error) << _LogKV("MarkTranInstDelayDestroy", tran_id) << " failed, ret=" << ret;
     }
 
     return 0;
@@ -343,22 +349,22 @@ void Transaction::TransactionCoroutineEntry(void* param, bool is_resume)
     {
         if (NULL == param)
         {
-            error_tlog("invalid args");
+            LogError() << "invalid args";
             break;
         }
 
         u64 tran_id = reinterpret_cast<u64>(param);
-        TransactionInstance* inst = g_shm_svr->tran_mgr()->GetTranInst(tran_id);
+        TransactionInstance* inst = g_trans_server_ptr->tran_mgr()->GetTranInst(tran_id);
         if (NULL == inst)
         {
-            error_tlog("GetTranInst=%lu failed", tran_id);
+            LogError() << "GetTranInst=" << tran_id <<" failed";
             break;
         }
 
-        Transaction* transaction = g_shm_svr->GetTranByType(inst->type());
+        Transaction* transaction = g_trans_server_ptr->GetTranByType(inst->type());
         if (NULL == transaction)
         {
-            error_tlog("GetTranByType=%d failed, inst=%lu", inst->type(), tran_id);
+            LogError() << "GetTranByType=" << inst->type() << " failed, inst=" << tran_id;
             break;
         }
 
@@ -373,13 +379,13 @@ void Transaction::TransactionCoroutineEntry(void* param, bool is_resume)
         }
         if (ret != 0)
         {
-            error_tlog("transaction proc failed, ret=%d tran=%lu", ret, tran_id);
+            LogError() << "transaction proc failed, ret="<<ret<<" tran=" << tran_id;
         }
 
         ret = g_trans_server_ptr->co_scheduler()->OnWorkRoutineExit();
         if (ret != 0)
         {
-            error_tlog("CoSchedulerInst.OnWorkRoutineExit failed, ret=%d.", ret);
+            LogError() << "CoSchedulerInst.OnWorkRoutineExit failed, ret=" << ret;
         }
     } while (0);
 
@@ -399,7 +405,7 @@ void Transaction::TransactionCoroutineResumeEntry(void* param)
 }
 
 TransactionInstance::TransactionInstance(s32 type, u64 owner_id)
-    : id_ { GuidGen::Instance().GenLocalGuid(E_GUID_TYPE_TRAN) },
+    : id_ { GenGUID() },
       owner_id_ { owner_id },
       type_ { type }
 {
@@ -421,14 +427,14 @@ TransactionInstance::~TransactionInstance()
 
 void TransactionInstance::Release()
 {
-    FrameShmObjCreate::DeleteTransactionInst(this);
+    DeleteTransactionInst(this);
 }
 
 void TransactionInstance::SafeRelease()
 {
     if (is_delay_destroying_)
-    {
-        error_tlog_inst("is delay destroying, cannot release directly");
+    {       
+        TranInstLog(Error) << " is delay destroying, cannot release directly";
     }
     else
     {
@@ -441,11 +447,12 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, const SSHead &head,
 {
     if (msg_type == E_TRANSACTION_EVENT_TYPE_INVALID)
     {
-        error_tlog("invalid args");
-        return E_WX_ERROR_INVALID_PARA;
+        LogError() << "invalid args";
+        return E_ERROR_INVALID_PARA;
     }
 
-    trace_tlog_inst("msg=%d", msg_type);
+    TranInstLog(Trace) << " msg=" << msg_type;
+
 
     if (msg_type == E_TRANSACTION_EVENT_TYPE_TIMEOUT)
     {
@@ -453,10 +460,10 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, const SSHead &head,
     }
     else if (timer_id_ != INVALID_TIMER_ID)
     {
-        s32 ret = g_shm_svr->time_mgr()->DestroyTimer(timer_id_);
+        s32 ret = g_trans_server_ptr->timer_mgr()->DestroyTimer(timer_id_);
         if (ret != 0)
         {
-            error_tlog("destroy transaction timer=%lu failed", timer_id_);
+            LogError() << "destroy transaction timer=" << timer_id_ << " failed";
         }
         timer_id_ = INVALID_TIMER_ID;
     }
@@ -467,10 +474,10 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, const SSHead &head,
         s32 *event = std::find(events_, events_ + event_count_, msg_type);
         if (event == events_ + event_count_)
         {
-            error_tlog_inst("not wait for msg =%d", msg_type);
+            TranInstLog(Error) << "not wait for msg=" << msg_type;
             for (s32 i = 0; i < event_count_; ++i)
             {
-                error_tlog("waiting msg[%d]: %d", i, events_[i]);
+                LogError() << "waiting msg[" << i << "]: " << events_[i];
             }
             return E_ERROR_LOGIC;
         }
@@ -480,7 +487,7 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, const SSHead &head,
     s32 ret = g_trans_server_ptr->co_scheduler()->SwapToWorkRoutine(coroutine_id_);
     if (ret != 0)
     {
-        error_tlog("SwapToWorkRoutine failed, coroutine id=%lu.", coroutine_id_);
+        LogError() << "SwapToWorkRoutine failed, coroutine id=" << coroutine_id_;
         return ret;
     }
 
@@ -491,11 +498,11 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, void *data)
 {
     if (msg_type == E_TRANSACTION_EVENT_TYPE_INVALID)
     {
-        error_tlog("invalid args");
-        return E_WX_ERROR_INVALID_PARA;
+        LogError() << "invalid args";
+        return E_ERROR_INVALID_PARA;
     }
 
-    trace_tlog_inst("msg=%d", msg_type);
+    TranInstLog(Trace) << " msg=" << msg_type;
 
     if (msg_type == E_TRANSACTION_EVENT_TYPE_TIMEOUT)
     {
@@ -503,10 +510,10 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, void *data)
     }
     else if (timer_id_ != INVALID_TIMER_ID)
     {
-        s32 ret = g_shm_svr->time_mgr()->DestroyTimer(timer_id_);
+        s32 ret = g_trans_server_ptr->timer_mgr()->DestroyTimer(timer_id_);
         if (ret != 0)
         {
-            error_tlog("destroy transaction timer=%lu failed", timer_id_);
+            LogError() << "destroy transaction timer=" << timer_id_ << " failed";
         }
         timer_id_ = INVALID_TIMER_ID;
     }
@@ -517,10 +524,10 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, void *data)
         s32 *event = std::find(events_, events_ + event_count_, msg_type);
         if (event == events_ + event_count_)
         {
-            error_tlog_inst("not wait for msg =%d", msg_type);
+            TranInstLog(Error) << "not wait for msg=" << msg_type;
             for (s32 i = 0; i < event_count_; ++i)
             {
-                error_tlog("waiting msg[%d]: %d", i, events_[i]);
+                LogError() << "waiting msg[" << i << "]: " << events_[i];
             }
             return E_ERROR_LOGIC;
         }
@@ -530,7 +537,7 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, void *data)
     s32 ret = g_trans_server_ptr->co_scheduler()->SwapToWorkRoutine(coroutine_id_);
     if (ret != 0)
     {
-        error_tlog("SwapToWorkRoutine failed, coroutine id=%lu.", coroutine_id_);
+        LogError() << "SwapToWorkRoutine failed, coroutine id=" << coroutine_id_;
         return ret;
     }
 
@@ -539,10 +546,10 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, void *data)
 
 s32 TransactionInstance::Wait(s32* events, s32 event_count, s32 timeout_ms)
 {
-    if (NULL == events || event_count <= 0 || timeout_ms <= 0 || event_count > array_size(events_))
+    if (NULL == events || event_count <= 0 || timeout_ms <= 0 || event_count > CommonUtil::array_size(events_))
     {
-        error_tlog("invlaid args");
-        return E_WX_ERROR_INVALID_PARA;
+        LogError() << "invlaid args";
+        return E_ERROR_INVALID_PARA;
     }
 
     do
@@ -553,12 +560,12 @@ s32 TransactionInstance::Wait(s32* events, s32 event_count, s32 timeout_ms)
             break;
         }
 
-        u64 timer_id = g_shm_svr->time_mgr()->RegisterTimer(timeout_ms, 1,
+        u64 timer_id = g_trans_server_ptr->timer_mgr()->RegisterTimer(timeout_ms, 1,
             E_BASE_TIMER_FUNC_ID_TRANSACTION_ON_TIMEOUT, const_cast<u64*>(&id_));
         if (INVALID_TIMER_ID == timer_id)
         {
-            error_tlog_inst("RegisterTimer failed");
-            return E_WX_ERROR_RESOURCE_UNAVAILABLE;
+            TranInstLog(Error) << "RegisterTimer failed";
+            return E_ERROR_RESOURCE_UNAVAILABLE;
         }
 
         timer_id_ = timer_id;
@@ -569,12 +576,12 @@ s32 TransactionInstance::Wait(s32* events, s32 event_count, s32 timeout_ms)
     }
     while (0);
 
-    trace_tlog_inst("waiting_index=%d", waiting_index_);
+    TranInstLog(Trace) << "waiting_index=" << waiting_index_;
 
     s32 ret = g_trans_server_ptr->co_scheduler()->SwapToMain();
     if (ret != 0)
     {
-        error_tlog("SwapToMain failed, ret=%d.", ret);
+        LogError() << "SwapToMain failed, ret=" << ret;
         return ret;
     }
 
@@ -583,12 +590,12 @@ s32 TransactionInstance::Wait(s32* events, s32 event_count, s32 timeout_ms)
 
 s32 TransactionInstance::Abort()
 {
-    infor_tlog_inst("abort");
+    TranInstLog(Trace) << "abort";
 
     s32 ret = SendMsgEvent(E_TRANSACTION_EVENT_TYPE_ABORT, NULL);
     if (ret != 0)
     {
-        error_tlog_inst("SendMsgEvent failed, ret=%d", ret);
+        TranInstLog(Error) << "SendMsgEvent failed, ret=" << ret;
         return ret;
     }
     return 0;
@@ -598,28 +605,29 @@ s32 TransactionInstance::ProcDefaultEvents(bool& is_proc)
 {
     if (event_type() == E_TRANSACTION_EVENT_TYPE_ABORT)
     {
-        infor_tlog("recv abort event, tran_inst=%d:%lu.", type(), id_);
+        LogInfo() << "recv abort event," << _LogKV2("tran_inst", type(), id_);
         is_proc = true;
-        set_fail_reason(E_WX_ERROR_ABORT_TRAN);
+        set_fail_reason(E_ERROR_ABORT_TRAN);
     }
     else if (event_type() == E_TRANSACTION_EVENT_TYPE_TIMEOUT)
     {
-        Transaction *tran = g_shm_svr->GetTranByType(type_);
+        Transaction *tran = g_trans_server_ptr->GetTranByType(type_);
         if (unlikely(!tran))
         {
-            error_tlog("GetTranByType=%d failed", type_);
-            return E_WX_ERROR_INVALID_PARA;
+            LogError() << "GetTranByType=" << type_ << " failed";
+            return E_ERROR_INVALID_PARA;
         }
         if (unlikely(curr_index_ < 0 || curr_index_ >= tran->cmd_array_.size()))
         {
-            error_tlog("invalid curr_index_=%u, cmd_array_size=%u", curr_index_, tran->cmd_array_.size());
-            return E_WX_ERROR_INVALID_PARA;
+            LogError()  << "Invalid " << _LogKV("curr_index", curr_index_)
+                        << _LogKV("cmd_array_size", tran->cmd_array_.size());
+            return E_ERROR_INVALID_PARA;
         }
         Command *cmd = tran->cmd_array_[curr_index_];
         if (unlikely(!cmd))
         {
-            error_tlog("tran_inst=%lu get cmd index=%d failed", id_, curr_index_);
-            return E_WX_ERROR_INVALID_PARA;
+            LogError() << _LogKV("tran_inst", id_) << "get cmd index=" << curr_index_ << " failed";
+            return E_ERROR_INVALID_PARA;
         }
         is_proc = true;
         return cmd->OnTimeout(*this);
@@ -643,17 +651,17 @@ void TransactionInstance::SetEventArg(s32 type, const SSHead &head,
 
 s32 TransactionInstance::Resume()
 {
-    Transaction* tran = g_shm_svr->GetTranByType(type_);
+    Transaction* tran = g_trans_server_ptr->GetTranByType(type_);
     if (tran == NULL)
     {
-        error_tlog("GetTranByType=%d failed, inst=%lu", type_, id_);
-        return E_WX_ERROR_SVR_INTERNAL;
+        LogError() << _LogKV("GetTranByType", type_) << " failed, inst=" << id_;
+        return E_ERROR_SVR_INTERNAL;
     }
 
     s32 ret = tran->Resume(*this);
     if (ret != 0)
     {
-        error_tlog("resume tran=%s:%lu failed, ret=%d", tran->GetName(), id_, ret);
+        LogError() << "resumt" << _LogKV2("tran", tran->GetName(), id_) << "failed, ret=" << ret;
         return ret;
     }
 

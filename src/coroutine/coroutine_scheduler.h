@@ -57,7 +57,4 @@ private:
     // u64 alloc_id_;  // 分配协程ID
 };
 
-
-#define g_coroutine_scheduler CoroutineScheduler::Instance()
-
 #endif // COROUTINE_SCHEDULER_H

@@ -41,6 +41,10 @@ FILE(GLOB_RECURSE SOURCES_S ${SRC_DIR}/coroutine/*.S)
 include_directories(${SRC_DIR}/transaction)
 aux_source_directory(${SRC_DIR}/transaction TRANSACTION_CODE)
 
+# timer
+include_directories(${SRC_DIR}/timer)
+aux_source_directory(${SRC_DIR}/timer TIMER_CODE)
+
 
 # valgrind
 include_directories(${PROJECT_THIRDPARTY_DIR}/valgrind)
@@ -53,7 +57,9 @@ include_directories(${SRC_DIR}/test)
 message("!!!!!!! CMAKE_SOURCE_DIR = " "${CMAKE_SOURCE_DIR}/src/transaction")
 
 
-add_executable(main main.cpp ${PROTO_CODE} ${SOURCES_S} ${COMMON_CODE} ${COROUTINE_CODE} ${TRANSACTION_CODE})
+set(ALL_DIR ${PROTO_CODE} ${SOURCES_S} ${COMMON_CODE} ${COROUTINE_CODE} ${TRANSACTION_CODE} ${TIMER_CODE})
+
+add_executable(main main.cpp ${ALL_DIR})
 
 
 
