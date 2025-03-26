@@ -12,18 +12,16 @@
 #include "gen_guid.h"
 #include "transaction/transaction_mem.h"
 
-
-
 #define TranLog(LOG_LEVEL) \
     Log##LOG_LEVEL() << "[" << GetName() << "] "
 
-#define TranInstLog(LOG_LEVEL) \
-    Log##LOG_LEVEL()    << _LogKV2("tran", type_, id_) \
-                        << _LogKV("owner", owner_id) << " "
+#define TranInstLog(LOG_LEVEL)                      \
+    Log##LOG_LEVEL() << _LogKV2("tran", type_, id_) \
+                     << _LogKV("owner", owner_id) << " "
 
 Transaction::Transaction(s32 type, bool is_need_undo)
-    : type_ { type },
-      is_need_undo_ { is_need_undo }
+    : type_{type},
+      is_need_undo_{is_need_undo}
 {
     demangled_cls_name_[0] = '\0';
 }
@@ -32,7 +30,7 @@ Transaction::~Transaction()
 {
 }
 
-const char* Transaction::GetName() const
+const char *Transaction::GetName() const
 {
     // 只有第一次预测失败
     if (likely(demangled_cls_name_[0] != '\0'))
@@ -40,12 +38,12 @@ const char* Transaction::GetName() const
         return demangled_cls_name_;
     }
 
-    (void) CommonUtil::GetDemangledName(this, demangled_cls_name_, sizeof(demangled_cls_name_));
+    (void)CommonUtil::GetDemangledName(this, demangled_cls_name_, sizeof(demangled_cls_name_));
 
     return demangled_cls_name_;
 }
 
-const char* Transaction::GetCmdName(int index) const
+const char *Transaction::GetCmdName(int index) const
 {
     if (unlikely(index < 0 || index >= cmd_array_.size()))
     {
@@ -69,8 +67,7 @@ s32 Transaction::Start(TransactionInstance *inst)
     }
 
     // TODO: 待梳理
-    (void) cs_req_id_util::SetTranInst(*inst);
-    
+    (void)cs_req_id_util::SetTranInst(*inst);
 
     LogDebug() << "Ready Create A Coroutine: " << _LogKV("stack_size", inst->stack_size())
                << _LogKV("tran_id", inst->id()) << _LogKV("owner", inst->owner_id());
@@ -78,15 +75,15 @@ s32 Transaction::Start(TransactionInstance *inst)
     // 创建工作协程
     u64 coroutine_id = 0;
     s32 ret = g_trans_server_ptr->co_scheduler()->CreateWorkRoutine(
-            inst->stack_size(), // 协程栈的大小
-            Transaction::TransactionCoroutineBootEntry, // 协程入口函数
-            (void*)inst->id(), // 入口函数参数
-            coroutine_id // 传出参数, 协程id
+        inst->stack_size(),                         // 协程栈的大小
+        Transaction::TransactionCoroutineBootEntry, // 协程入口函数
+        (void *)inst->id(),                         // 入口函数参数
+        coroutine_id                                // 传出参数, 协程id
     );
 
     if (ret != 0)
     {
-        LogError() << "Transaction<" << GetName() << ">CreateWorkRoutine failed, ret="<< ret;
+        LogError() << "Transaction<" << GetName() << ">CreateWorkRoutine failed, ret=" << ret;
         return ret;
     }
 
@@ -102,7 +99,7 @@ s32 Transaction::Start(TransactionInstance *inst)
         inst->set_coroutine_id(0);
 
         // 销毁协程
-        (void) g_trans_server_ptr->co_scheduler()->DestroyWorkRoutine(coroutine_id);
+        (void)g_trans_server_ptr->co_scheduler()->DestroyWorkRoutine(coroutine_id);
         TranLog(Error) << "SwapToWorkRoutine failed, ret=" << ret;
         return ret;
     }
@@ -116,7 +113,7 @@ void Transaction::RunCommandOnInstance(TransactionInstance &inst, int index)
     {
         inst.set_curr_index(i);
 
-        Command* command = cmd_array_[i];
+        Command *command = cmd_array_[i];
 
         TranLog(Debug) << _LogKV2("inst", inst.id(), command->GetName()) << "::Do owner=" << inst.owner_id();
 
@@ -125,8 +122,8 @@ void Transaction::RunCommandOnInstance(TransactionInstance &inst, int index)
 
         if (error_code != 0 || inst.IsFailed())
         {
-            TranLog(Debug)  << _LogKV2("inst", inst.id(), command->GetName()) << "::Do() failed"
-                            << _LogK(index) << _LogKV2("ret", i, error_code);
+            TranLog(Debug) << _LogKV2("inst", inst.id(), command->GetName()) << "::Do() failed"
+                           << _LogK(index) << _LogKV2("ret", i, error_code);
 
             inst.set_fail_index(i);
             if (inst.fail_reason() == 0)
@@ -144,7 +141,7 @@ void Transaction::RunCommandOnInstance(TransactionInstance &inst, int index)
     }
 }
 
-s32 Transaction::RealStart(TransactionInstance& inst)
+s32 Transaction::RealStart(TransactionInstance &inst)
 {
     const u64 tran_id = inst.id();
     TranLog(Debug) << _LogKV("inst", tran_id) << _LogKV("owner", inst.owner_id());
@@ -183,12 +180,11 @@ void Transaction::HandleResult(TransactionInstance &inst)
         return;
     }
 
-
     auto cris = cs_req_id_util::Push(inst.cs_req_id());
 
     if (inst.is_complete())
     {
-        (void) OnSuccess(inst);
+        (void)OnSuccess(inst);
     }
     else
     {
@@ -206,7 +202,6 @@ void Transaction::HandleResult(TransactionInstance &inst)
         {
             ret = Undo(inst);
         }
-
     }
 
     Finally(inst);
@@ -214,7 +209,7 @@ void Transaction::HandleResult(TransactionInstance &inst)
     cs_req_id_util::Pop(cris);
 }
 
-s32 Transaction::Undo(TransactionInstance& inst)
+s32 Transaction::Undo(TransactionInstance &inst)
 {
     if (!is_need_undo_)
     {
@@ -244,8 +239,8 @@ s32 Transaction::Undo(TransactionInstance& inst)
 
     if (undo_idx >= cmd_array_.size())
     {
-        TranLog(Error)  << _LogKV("inst", inst.id()) << _LogKV("undo idx", undo_idx)
-                        << " is larger than command size=" << cmd_array_.size();    
+        TranLog(Error) << _LogKV("inst", inst.id()) << _LogKV("undo idx", undo_idx)
+                       << " is larger than command size=" << cmd_array_.size();
         return E_ERROR_SVR_INTERNAL;
     }
 
@@ -253,9 +248,9 @@ s32 Transaction::Undo(TransactionInstance& inst)
     for (s32 i = undo_idx - 1; i >= 0; --i)
     {
         // 回滚的时候不中断，尝试尽量回滚每一步
-        TranLog(Info)   << _LogKV("inst", inst.id()) << _LogKV("idx", i)
-                        << _LogKV("cmd", cmd_array_[i]->GetName())
-                        << _LogKV("owner", inst.owner_id());
+        TranLog(Info) << _LogKV("inst", inst.id()) << _LogKV("idx", i)
+                      << _LogKV("cmd", cmd_array_[i]->GetName())
+                      << _LogKV("owner", inst.owner_id());
         cmd_array_[i]->Undo(inst);
     }
     inst.set_fail_index(-1);
@@ -264,12 +259,12 @@ s32 Transaction::Undo(TransactionInstance& inst)
     return 0;
 }
 
-s32 Transaction::Resume(TransactionInstance& inst)
+s32 Transaction::Resume(TransactionInstance &inst)
 {
     u64 co_id = inst.coroutine_id();
 
     s32 ret = g_trans_server_ptr->co_scheduler()->RestartCoroutine(
-        co_id, Transaction::TransactionCoroutineResumeEntry, (void*)inst.id());
+        co_id, Transaction::TransactionCoroutineResumeEntry, (void *)inst.id());
     if (ret == 0)
     {
         ret = g_trans_server_ptr->co_scheduler()->SwapToWorkRoutine(co_id);
@@ -300,11 +295,11 @@ s32 Transaction::Resume(TransactionInstance& inst)
 s32 Transaction::RealResume(TransactionInstance &inst)
 {
     u64 tran_id = inst.id();
-    
-    TranLog(Info)   << _LogKV("inst", tran_id) << _LogKV("owner", inst.owner_id())
-                    << _LogKV("curr_index", inst.curr_index())
-                    << _LogKV("waiting_index", inst.waiting_index())
-                    << _LogKV("fail_index", inst.fail_index());
+
+    TranLog(Info) << _LogKV("inst", tran_id) << _LogKV("owner", inst.owner_id())
+                  << _LogKV("curr_index", inst.curr_index())
+                  << _LogKV("waiting_index", inst.waiting_index())
+                  << _LogKV("fail_index", inst.fail_index());
 
     do
     {
@@ -352,7 +347,7 @@ s32 Transaction::RealResume(TransactionInstance &inst)
     return 0;
 }
 
-void Transaction::TransactionCoroutineEntry(void* param, bool is_resume)
+void Transaction::TransactionCoroutineEntry(void *param, bool is_resume)
 {
     static BoostContext curr_context = NULL;
     do
@@ -364,14 +359,14 @@ void Transaction::TransactionCoroutineEntry(void* param, bool is_resume)
         }
 
         u64 tran_id = reinterpret_cast<u64>(param);
-        TransactionInstance* inst = g_trans_server_ptr->tran_mgr()->GetTranInst(tran_id);
+        TransactionInstance *inst = g_trans_server_ptr->tran_mgr()->GetTranInst(tran_id);
         if (NULL == inst)
         {
-            LogError() << "GetTranInst=" << tran_id <<" failed";
+            LogError() << "GetTranInst=" << tran_id << " failed";
             break;
         }
 
-        Transaction* transaction = g_trans_server_ptr->GetTranByType(inst->type());
+        Transaction *transaction = g_trans_server_ptr->GetTranByType(inst->type());
         if (NULL == transaction)
         {
             LogError() << "GetTranByType=" << inst->type() << " failed, inst=" << tran_id;
@@ -389,7 +384,7 @@ void Transaction::TransactionCoroutineEntry(void* param, bool is_resume)
         }
         if (ret != 0)
         {
-            LogError() << "transaction proc failed, ret="<<ret<<" tran=" << tran_id;
+            LogError() << "transaction proc failed, ret=" << ret << " tran=" << tran_id;
         }
 
         ret = g_trans_server_ptr->co_scheduler()->OnWorkRoutineExit();
@@ -401,23 +396,23 @@ void Transaction::TransactionCoroutineEntry(void* param, bool is_resume)
 
     // boost context没有uclink, 必须自己跳转回主协程
     JumpContext(&curr_context,
-        g_trans_server_ptr->co_scheduler()->main_routine().context(), NULL, false);
+                g_trans_server_ptr->co_scheduler()->main_routine().context(), NULL, false);
 }
 
-void Transaction::TransactionCoroutineBootEntry(void* param)
+void Transaction::TransactionCoroutineBootEntry(void *param)
 {
     TransactionCoroutineEntry(param, false);
 }
 
-void Transaction::TransactionCoroutineResumeEntry(void* param)
+void Transaction::TransactionCoroutineResumeEntry(void *param)
 {
     TransactionCoroutineEntry(param, true);
 }
 
 TransactionInstance::TransactionInstance(s32 type, u64 owner_id)
-    : id_ { GenGUID() },
-      owner_id_ { owner_id },
-      type_ { type }
+    : id_{GenGUID()},
+      owner_id_{owner_id},
+      type_{type}
 {
     timer_id_ = INVALID_TIMER_ID;
     coroutine_id_ = 0;
@@ -443,7 +438,7 @@ void TransactionInstance::Release()
 void TransactionInstance::SafeRelease()
 {
     if (is_delay_destroying_)
-    {       
+    {
         TranInstLog(Error) << " is delay destroying, cannot release directly";
     }
     else
@@ -462,7 +457,6 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, const SSHead &head,
     }
 
     TranInstLog(Trace) << " msg=" << msg_type;
-
 
     if (msg_type == E_TRANSACTION_EVENT_TYPE_TIMEOUT)
     {
@@ -554,7 +548,7 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, void *data)
     return 0;
 }
 
-s32 TransactionInstance::Wait(s32* events, s32 event_count, s32 timeout_ms)
+s32 TransactionInstance::Wait(s32 *events, s32 event_count, s32 timeout_ms)
 {
     if (NULL == events || event_count <= 0 || timeout_ms <= 0 || event_count > CommonUtil::array_size(events_))
     {
@@ -571,7 +565,7 @@ s32 TransactionInstance::Wait(s32* events, s32 event_count, s32 timeout_ms)
         }
 
         u64 timer_id = g_trans_server_ptr->timer_mgr()->RegisterTimer(timeout_ms, 1,
-            E_BASE_TIMER_FUNC_ID_TRANSACTION_ON_TIMEOUT, const_cast<u64*>(&id_));
+                                                                      E_BASE_TIMER_FUNC_ID_TRANSACTION_ON_TIMEOUT, const_cast<u64 *>(&id_));
         if (INVALID_TIMER_ID == timer_id)
         {
             TranInstLog(Error) << "RegisterTimer failed";
@@ -583,8 +577,7 @@ s32 TransactionInstance::Wait(s32* events, s32 event_count, s32 timeout_ms)
 
         memcpy(events_, events, sizeof(s32) * event_count);
         event_count_ = event_count;
-    }
-    while (0);
+    } while (0);
 
     TranInstLog(Trace) << "waiting_index=" << waiting_index_;
 
@@ -611,7 +604,7 @@ s32 TransactionInstance::Abort()
     return 0;
 }
 
-s32 TransactionInstance::ProcDefaultEvents(bool& is_proc)
+s32 TransactionInstance::ProcDefaultEvents(bool &is_proc)
 {
     if (event_type() == E_TRANSACTION_EVENT_TYPE_ABORT)
     {
@@ -629,8 +622,8 @@ s32 TransactionInstance::ProcDefaultEvents(bool& is_proc)
         }
         if (unlikely(curr_index_ < 0 || curr_index_ >= tran->cmd_array_.size()))
         {
-            LogError()  << "Invalid " << _LogKV("curr_index", curr_index_)
-                        << _LogKV("cmd_array_size", tran->cmd_array_.size());
+            LogError() << "Invalid " << _LogKV("curr_index", curr_index_)
+                       << _LogKV("cmd_array_size", tran->cmd_array_.size());
             return E_ERROR_INVALID_PARA;
         }
         Command *cmd = tran->cmd_array_[curr_index_];
@@ -646,7 +639,7 @@ s32 TransactionInstance::ProcDefaultEvents(bool& is_proc)
     return 0;
 }
 
-void TransactionInstance::SetEventArg(s32 type, void* msg)
+void TransactionInstance::SetEventArg(s32 type, void *msg)
 {
     event_type_ = type;
     event_arg_.msg = msg;
@@ -656,12 +649,12 @@ void TransactionInstance::SetEventArg(s32 type, const SSHead &head,
                                       const google::protobuf::Message &body)
 {
     event_type_ = type;
-    event_arg_.msg = TransactionEventArg::ServerProtoMessage { &head, &body };
+    event_arg_.msg = TransactionEventArg::ServerProtoMessage{&head, &body};
 }
 
 s32 TransactionInstance::Resume()
 {
-    Transaction* tran = g_trans_server_ptr->GetTranByType(type_);
+    Transaction *tran = g_trans_server_ptr->GetTranByType(type_);
     if (tran == NULL)
     {
         LogError() << _LogKV("GetTranByType", type_) << " failed, inst=" << id_;
