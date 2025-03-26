@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <iomanip>
 #include "error_define.pb.h"
 
 using u32 = uint32_t;
@@ -53,8 +54,9 @@ struct uuid_t
 // 日志流辅助类
 class LogStream {
 public:
-    LogStream(const char* file, int line, const char* level) {
-        std::cout << "[" << level << "] (" << file << ":" << line << ") ";
+    LogStream(const char* file, int line, const char* fname, const char* level) {
+        // std::cout << "[" << level << "] (" << file << ":" << std::left << std::setw(4) << line << ") [" << fname << "] ";
+        std::cout << "[" << level << "] (" << file << ":" << line << ")[" << fname << "] ";
     }
     
     ~LogStream() {
@@ -70,12 +72,12 @@ public:
 };
 
 // 日志宏（支持自动换行）
-#define LogFatal() LogStream(__FILE__, __LINE__, "Fatal")
-#define LogError() LogStream(__FILE__, __LINE__, "Error")
-#define LogWarn()  LogStream(__FILE__, __LINE__, "Warn ")
-#define LogInfo()  LogStream(__FILE__, __LINE__, "Info ")
-#define LogDebug() LogStream(__FILE__, __LINE__, "Debug")
-#define LogTrace() LogStream(__FILE__, __LINE__, "Trace")
+#define LogFatal() LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Fatal")
+#define LogError() LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Error")
+#define LogWarn()  LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Warn ")
+#define LogInfo()  LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Info ")
+#define LogDebug() LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Debug")
+#define LogTrace() LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Trace")
 
 
 

@@ -38,8 +38,8 @@ aux_source_directory(${SRC_DIR}/coroutine COROUTINE_CODE)
 FILE(GLOB_RECURSE SOURCES_S ${SRC_DIR}/coroutine/*.S)
 
 # transaction
-# include_directories(${SRC_DIR}/transaction)
-# aux_source_directory(${SRC_DIR}/transaction TRANSACTION_CODE)
+include_directories(${SRC_DIR}/transaction)
+aux_source_directory(${SRC_DIR}/transaction TRANSACTION_CODE)
 
 
 # valgrind
