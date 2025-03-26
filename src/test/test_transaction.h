@@ -90,7 +90,8 @@ int main(int argc, char *argv[])
 {
     LogInfo() << "begin main call ...";
 
-    g_trans_server_ptr = std::unique_ptr<TestTransactionServer>(new TestTransactionServer());
+    // g_trans_server_ptr 全局只有一个
+    g_trans_server_ptr = std::unique_ptr<TestTransactionServer>(new TestTransactionServer()); // C++11不支持make_unique...
     if (! g_trans_server_ptr)
     {
         LogFatal() << "new TestTransactionServer failed";

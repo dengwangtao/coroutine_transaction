@@ -11,12 +11,12 @@ TransactionServer::TransactionServer()
     , tran_mgr_ptr_ { new TranInstMgr{} }
     , timer_mgr_ptr_ { new TimerMgr{} }
 {
-
+    LogDebug() << "TransactionServer::TransactionServer";
 }
 
 TransactionServer::~TransactionServer()
 {
-
+    LogDebug() << "TransactionServer::~TransactionServer";
 }
 
 s32 TransactionServer::Init()
