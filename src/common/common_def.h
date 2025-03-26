@@ -79,7 +79,9 @@ public:
 
 
 
-
+#define _LogK(k) #k << "<" << k << "> "
+#define _LogKV(k, v) #k << "<" << v << "> "
+#define _LogKV2(k, v1, v2) #k << "<" << v1 << "," << v2 << "> "
 
 
 

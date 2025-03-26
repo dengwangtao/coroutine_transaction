@@ -13,14 +13,14 @@ constexpr size_t kMaxDemangledClassNameSize = 32;
 
 class TransactionInstance;
 
-// 这个类里面只定义操作, 不要记录状态, 这样就不必放在共享内存中
 class Command
 {
 public:
     using EventIdVec = std::vector<s32>;
 
     explicit Command(const EventIdVec& event_id_vec, s32 timeout_ms = kWaitMsgDefaultTimeout)
-        : do_event_id_vec_(event_id_vec.begin(), event_id_vec.end()), timeout_ms_(timeout_ms)
+        : do_event_id_vec_(event_id_vec.begin(), event_id_vec.end())
+        , timeout_ms_(timeout_ms)
     {
         demangled_cls_name_[0] = '\0';
     }
