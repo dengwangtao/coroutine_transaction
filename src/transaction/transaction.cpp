@@ -9,6 +9,10 @@
 #include "transaction_instance.h"
 
 
+
+#define TranLog(LOG_LEVEL) \
+    Log##LOG_LEVEL() << "[" << GetName() << "] "
+
 Transaction::Transaction(s32 type, bool is_need_undo)
     : type_ { type },
       is_need_undo_ { is_need_undo }
@@ -52,7 +56,7 @@ s32 Transaction::Start(TransactionInstance *inst)
 
     if (inst->coroutine_id() != 0)
     {
-        LogError() << "already started, curr_index=" << inst->curr_index();
+        TranLog(Error) << "already started, curr_index=" << inst->curr_index();
         return E_ERROR_LOGIC;
     }
 
@@ -83,7 +87,7 @@ s32 Transaction::Start(TransactionInstance *inst)
         inst->set_coroutine_id(0);
 
         (void) g_coroutine_scheduler.DestroyWorkRoutine(coroutine_id);
-        error_tlog_tran("SwapToWorkRountine failed, ret=%d", ret);
+        TranLog(Error) << "SwapToWorkRoutine failed, ret=" << ret;
         return ret;
     }
 
@@ -98,17 +102,16 @@ void Transaction::RunCommandOnInstance(TransactionInstance &inst, int index)
 
         Command* command = cmd_array_[i];
 
-        debug_tlog_tran("inst=%lu %s::Do owner=%lu", inst.id(),
-                        command->GetName(), inst.owner_id());
+        TranLog(Debug) << _LogKV2("inst", inst.id(), command->GetName()) << "::Do owner=" << inst.owner_id();
 
         inst.set_should_wait_current_cmd(true);
         s32 error_code = command->DoAndWait(inst);
 
         if (error_code != 0 || inst.IsFailed())
         {
-            error_tlog_tran("inst=%lu %s::Do() failed, index=%d ret=%d:%s",
-                            inst.id(), command->GetName(), i, error_code,
-                            MTErrorDefine_Name(error_code).c_str());
+            TranLog(Debug)  << _LogKV2("inst", inst.id(), command->GetName()) << "::Do() failed"
+                            << _LogK(index) << _LogKV2("ret", i, error_code);
+
             inst.set_fail_index(i);
             if (inst.fail_reason() == 0)
             {
@@ -118,8 +121,8 @@ void Transaction::RunCommandOnInstance(TransactionInstance &inst, int index)
         }
         else if (inst.is_complete())
         {
-            infor_tlog_tran("inst=%lu %s complete at %d/%d", inst.id(),
-                            command->GetName(), i, cmd_array_.size());
+            TranLog(Info) << _LogKV2("inst", inst.id(), command->GetName()) << " complete at "
+                          << i << "/" << cmd_array_.size();
             break;
         }
     }
