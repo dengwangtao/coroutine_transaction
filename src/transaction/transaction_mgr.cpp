@@ -33,7 +33,7 @@ void TranInstMgr::Update()
 
         if (inst->coroutine_id() != 0)
         {
-            s32 ret = g_coroutine_scheduler.DestroyWorkRoutine(inst->coroutine_id());
+            s32 ret = g_trans_server_ptr->co_scheduler()->DestroyWorkRoutine(inst->coroutine_id());
             if (ret != 0)
             {
                 LogError() << "DestroyWorkRoutine failed, ret=" << ret;

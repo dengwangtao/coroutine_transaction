@@ -54,3 +54,20 @@ enum SSCmdDef
     E_S2DB_CMD_OP_USER_ONLINE_INFO_REQ = 3;
     E_DB2S_CMD_OP_USER_ONLINE_INFO_RSP = 4;
 }
+
+
+message CSHead
+{
+    required int32 cmd = 1;
+    optional int32 body_len = 2;
+    optional uint32 client_seq = 3;
+    optional uint32 server_seq = 4;
+    // 高48位表示发包时server时间自epoch开始的毫秒数, 低16位代表同一毫秒内
+    // 的序列号. 这个field值比较大, 会导致CSHead序列化后长度较大, 因此只在
+    // 服务端Debug版本设置, Release版本不设置.
+    optional uint64 server_ts = 5;
+    // 返回服务器对客户端请求的处理结果错误码，0表示没有错误。
+    optional uint32 result = 6;
+    // 客户端上行Req时附带，服务器返回对应的Rsp响应时会返回对应ID，理论上Ntf中不会附带
+    optional uint32 cs_req_id = 7;
+}

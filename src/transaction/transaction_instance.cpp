@@ -1,5 +1,5 @@
 #include "transaction_instance.h"
-#include "transaction_mgr.h"
+#include "transaction_server.h"
 
 void TransactionInstance::TransactionOnTimeout(
     u64 timer_id, void* data, size_t data_len)
@@ -11,7 +11,7 @@ void TransactionInstance::TransactionOnTimeout(
     }
 
     u64 tran_id = *(reinterpret_cast<u64*>(data));
-    TransactionInstance* inst = g_tran_inst_mgr.GetTranInst(tran_id);
+    TransactionInstance* inst = g_trans_server_ptr->tran_mgr()->GetTranInst(tran_id);
     if (NULL == inst)
     {
         LogError() << "TranMgrInst.GetTranInst=" << tran_id << " failed";

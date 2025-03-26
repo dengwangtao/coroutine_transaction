@@ -8,7 +8,7 @@
 class TransactionInstance;
 
 
-class TranInstMgr : public Singleton<TranInstMgr>
+class TranInstMgr
 {
 public:
     s32 AddTranInst(TransactionInstance* inst);
@@ -34,8 +34,5 @@ private:
     std::map<u64, TransactionInstance*> trans_map_;
     std::set<TransactionInstance*> destroy_list_;
 };
-
-#define g_tran_inst_mgr TranInstMgr::Instance()
-
 
 #endif // SRC_TRANSACTION_TRANSACTION_MGR_H_

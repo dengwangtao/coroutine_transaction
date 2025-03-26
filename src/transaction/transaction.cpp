@@ -5,8 +5,10 @@
 #include "transaction.h"
 #include "command.h"
 #include "coroutine_def.h"
-#include "coroutine_scheduler.h"
+#include "transaction_server.h"
 #include "transaction_instance.h"
+#include "transaction/transaction_mgr.h"
+#include "cs_req_id_util.h"
 
 
 
@@ -60,13 +62,11 @@ s32 Transaction::Start(TransactionInstance *inst)
         return E_ERROR_LOGIC;
     }
 
-    // TODO: 设置一个cs请求id
-    // inst.set_cs_req_id(...);
-    // (void) cs_req_id_util::SetTranInst(*inst);
+    (void) cs_req_id_util::SetTranInst(*inst);
     
 
     u64 coroutine_id = 0;
-    s32 ret = g_coroutine_scheduler.CreateWorkRoutine(
+    s32 ret = g_trans_server_ptr->co_scheduler()->CreateWorkRoutine(
             inst->stack_size(),
             Transaction::TransactionCoroutineBootEntry,
             (void*)inst->id(),
@@ -81,12 +81,12 @@ s32 Transaction::Start(TransactionInstance *inst)
 
     inst->set_coroutine_id(coroutine_id);
 
-    ret = g_coroutine_scheduler.SwapToWorkRoutine(coroutine_id);
+    ret = g_trans_server_ptr->co_scheduler()->SwapToWorkRoutine(coroutine_id);
     if (ret != 0)
     {
         inst->set_coroutine_id(0);
 
-        (void) g_coroutine_scheduler.DestroyWorkRoutine(coroutine_id);
+        (void) g_trans_server_ptr->co_scheduler()->DestroyWorkRoutine(coroutine_id);
         TranLog(Error) << "SwapToWorkRoutine failed, ret=" << ret;
         return ret;
     }
@@ -131,13 +131,13 @@ void Transaction::RunCommandOnInstance(TransactionInstance &inst, int index)
 s32 Transaction::RealStart(TransactionInstance& inst)
 {
     const u64 tran_id = inst.id();
-    debug_tlog_tran("inst=%lu owner=%lu", tran_id, inst.owner_id());
+    TranLog(Debug) << _LogKV("inst", tran_id) << _LogKV("owner", inst.owner_id());
 
     int ret = OnStart(inst);
     if (ret != 0)
     {
-        error_tlog_tran("OnStart failed, ret=%d", ret);
-        inst.set_fail_reason(E_WX_ERROR_SVR_INTERNAL);
+        TranLog(Error) << "OnStart failed, ret=" << ret;
+        inst.set_fail_reason(E_ERROR_SVR_INTERNAL);
     }
     else
     {
@@ -147,13 +147,13 @@ s32 Transaction::RealStart(TransactionInstance& inst)
     if (!inst.IsFailed() && !inst.is_complete())
     {
         inst.complete();
-        infor_tlog_tran("id=%lu succeeded, owner=%lu", tran_id, inst.owner_id());
+        TranLog(Info) << _LogKV("id", tran_id) << " succeeded" << _LogKV("owner", inst.owner_id());
     }
 
-    ret = g_shm_svr->tran_mgr()->MarkTranInstDelayDestroy(&inst);
+    ret = g_trans_server_ptr->tran_mgr()->MarkTranInstDelayDestroy(&inst);
     if (ret != 0)
     {
-        error_tlog("MarkTranInstDelayDestroy failed, inst=%lu", tran_id);
+        TranLog(Error) << "MarkTranInstDelayDestroy failed, inst=" << tran_id;
     }
 
     return 0;
@@ -161,13 +161,12 @@ s32 Transaction::RealStart(TransactionInstance& inst)
 
 void Transaction::HandleResult(TransactionInstance &inst)
 {
-    if (g_coroutine_scheduler.IsInCoroutine())
+    if (g_trans_server_ptr->co_scheduler()->IsInCoroutine())
     {
-        error_tlog_tran("not in main routine, inst=%lu", inst.id());
+        TranLog(Error) << "not in main routine, inst=" << inst.id();
         return;
     }
 
-    trace::TraceGuard trace_guard(inst, trace::SpanKind::SPAN_KIND_CONSUMER);
 
     auto cris = cs_req_id_util::Push(inst.cs_req_id());
 
@@ -178,7 +177,7 @@ void Transaction::HandleResult(TransactionInstance &inst)
     else
     {
         s32 ret = 0;
-        if (inst.fail_reason() == E_WX_ERROR_ABORT_TRAN)
+        if (inst.fail_reason() == E_ERROR_ABORT_TRAN)
         {
             ret = OnAbort(inst);
         }
@@ -192,7 +191,6 @@ void Transaction::HandleResult(TransactionInstance &inst)
             ret = Undo(inst);
         }
 
-        trace_guard.SetResult(ret, "HandleResult");
     }
 
     Finally(inst);
@@ -210,17 +208,15 @@ s32 Transaction::Undo(TransactionInstance& inst)
     // It's possible that crash occurs during undo.
     if (inst.is_in_undo())
     {
-        error_tlog_tran("inst=%lu fail_idx=%d already in undo", inst.id(),
-                        inst.fail_index());
-        return E_WX_ERROR_ALREADY_IN_PROGRESS;
+        TranLog(Error) << _LogKV("inst", inst.id()) << _LogKV("fail_idx", inst.fail_index()) << " already in undo";
+        return E_ERROR_ALREADY_IN_PROGRESS;
     }
 
     s32 undo_idx = inst.fail_index();
     if (undo_idx < 0)
     {
-        error_tlog_tran("inst=%lu fail idx not set, may crash in do=%d",
-                        inst.id(), inst.curr_index());
-        return E_WX_ERROR_UNKNOWN;
+        TranLog(Error) << _LogKV("inst", inst.id()) << "fail idx not set, may crash in do=" << inst.curr_index();
+        return E_ERROR_UNKNOWN;
     }
 
     // Undo from the index before the failed one since we don't know if the
@@ -232,17 +228,18 @@ s32 Transaction::Undo(TransactionInstance& inst)
 
     if (undo_idx >= cmd_array_.size())
     {
-        error_tlog_tran("inst=%lu undo idx=%d is larger than command size=%d",
-                        inst.id(), undo_idx, cmd_array_.size());
-        return E_WX_ERROR_SVR_INTERNAL;
+        TranLog(Error)  << _LogKV("inst", inst.id()) << _LogKV("undo idx", undo_idx)
+                        << " is larger than command size=" << cmd_array_.size();    
+        return E_ERROR_SVR_INTERNAL;
     }
 
     inst.set_is_in_undo(true);
     for (s32 i = undo_idx - 1; i >= 0; --i)
     {
         // 回滚的时候不中断，尝试尽量回滚每一步
-        infor_tlog_tran("inst=%lu idx=%d cmd=%s, owner=%lu", inst.id(), i,
-                        cmd_array_[i]->GetName(), inst.owner_id());
+        TranLog(Info)   << _LogKV("inst", inst.id()) << _LogKV("idx", i)
+                        << _LogKV("cmd", cmd_array_[i]->GetName())
+                        << _LogKV("owner", inst.owner_id());
         cmd_array_[i]->Undo(inst);
     }
     inst.set_fail_index(-1);
@@ -255,45 +252,44 @@ s32 Transaction::Resume(TransactionInstance& inst)
 {
     u64 co_id = inst.coroutine_id();
 
-    s32 ret = g_coroutine_scheduler.RestartCoroutine(
+    s32 ret = g_trans_server_ptr->co_scheduler()->RestartCoroutine(
         co_id, Transaction::TransactionCoroutineResumeEntry, (void*)inst.id());
     if (ret == 0)
     {
-        ret = g_coroutine_scheduler.SwapToWorkRoutine(co_id);
+        ret = g_trans_server_ptr->co_scheduler()->SwapToWorkRoutine(co_id);
         if (ret == 0)
         {
             return 0;
         }
 
-        error_tlog_tran("inst=%lu SwapToWorkRountine=%lu failed, ret=%d",
-            inst.id(), co_id, ret);
+        TranLog(Error) << _LogKV("inst", inst.id()) << "SwapToWorkRountine=" << co_id << " failed, ret=" << ret;
     }
 
-    error_tlog_tran("inst=%lu restart coroutine=%lu failed", inst.id(), co_id);
+    TranLog(Error) << _LogKV("inst", inst.id()) << "restart coroutine=" << co_id << " failed";
 
     inst.set_fail_index(inst.curr_index());
     inst.set_fail_reason(ret);
 
     const u64 tran_id = inst.id();
 
-    ret = g_shm_svr->tran_mgr()->MarkTranInstDelayDestroy(&inst);
+    ret = g_trans_server_ptr->tran_mgr()->MarkTranInstDelayDestroy(&inst);
     if (ret != 0)
     {
-        error_tlog_tran("MarkTranInstDelayDestroy=%lu failed, ret=%d", tran_id, ret);
+        TranLog(Error) << "MarkTranInstDelayDestroy=" << tran_id << " failed, ret=" << ret;
     }
 
-    return E_WX_ERROR_SVR_INTERNAL;
+    return E_ERROR_SVR_INTERNAL;
 }
 
 s32 Transaction::RealResume(TransactionInstance &inst)
 {
     u64 tran_id = inst.id();
+    
+    TranLog(Info)   << _LogKV("inst", tran_id) << _LogKV("owner", inst.owner_id())
+                    << _LogKV("curr_index", inst.curr_index())
+                    << _LogKV("waiting_index", inst.waiting_index())
+                    << _LogKV("fail_index", inst.fail_index());
 
-    infor_tlog_tran(
-        "inst=%lu owner=%lu curr_index=%d waiting_index=%d "
-        "fail_index=%d",
-        tran_id, inst.owner_id(), inst.curr_index(), inst.waiting_index(),
-        inst.fail_index());
     do
     {
         // Crash may happen during Command::Do of curr_index
@@ -307,8 +303,7 @@ s32 Transaction::RealResume(TransactionInstance &inst)
 
         if (waiting_index >= cmd_array_.size())
         {
-            error_tlog_tran("inst=%lu invalid waiting index=%d", tran_id,
-                            waiting_index);
+            TranLog(Error) << _LogKV("inst", tran_id) << " invalid waiting index=" << waiting_index;
             break;
         }
 
@@ -329,10 +324,10 @@ s32 Transaction::RealResume(TransactionInstance &inst)
     if (!inst.IsFailed() && !inst.is_complete())
     {
         inst.complete();
-        infor_tlog_tran("inst=%lu succeeded, owner=%lu", tran_id, inst.owner_id());
+        TranLog(Info) << _LogKV("inst", tran_id) << " succeeded." << _LogKV("owner", inst.owner_id());
     }
 
-    s32 ret = g_shm_svr->tran_mgr()->MarkTranInstDelayDestroy(&inst);
+    s32 ret = g_trans_server_ptr->tran_mgr()->MarkTranInstDelayDestroy(&inst);
     if (ret != 0)
     {
         error_tlog_tran("MarkTranInstDelayDestroy=%lu failed, ret=%d", tran_id, ret);
@@ -381,7 +376,7 @@ void Transaction::TransactionCoroutineEntry(void* param, bool is_resume)
             error_tlog("transaction proc failed, ret=%d tran=%lu", ret, tran_id);
         }
 
-        ret = g_coroutine_scheduler.OnWorkRoutineExit();
+        ret = g_trans_server_ptr->co_scheduler()->OnWorkRoutineExit();
         if (ret != 0)
         {
             error_tlog("CoSchedulerInst.OnWorkRoutineExit failed, ret=%d.", ret);
@@ -390,7 +385,7 @@ void Transaction::TransactionCoroutineEntry(void* param, bool is_resume)
 
     // boost context没有uclink, 必须自己跳转回主协程
     JumpContext(&curr_context,
-        g_coroutine_scheduler.main_routine().context(), NULL, false);
+        g_trans_server_ptr->co_scheduler()->main_routine().context(), NULL, false);
 }
 
 void Transaction::TransactionCoroutineBootEntry(void* param)
@@ -482,7 +477,7 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, const SSHead &head,
     }
 
     SetEventArg(msg_type, head, msg);
-    s32 ret = g_coroutine_scheduler.SwapToWorkRoutine(coroutine_id_);
+    s32 ret = g_trans_server_ptr->co_scheduler()->SwapToWorkRoutine(coroutine_id_);
     if (ret != 0)
     {
         error_tlog("SwapToWorkRoutine failed, coroutine id=%lu.", coroutine_id_);
@@ -532,7 +527,7 @@ s32 TransactionInstance::SendMsgEvent(s32 msg_type, void *data)
     }
 
     SetEventArg(msg_type, data);
-    s32 ret = g_coroutine_scheduler.SwapToWorkRoutine(coroutine_id_);
+    s32 ret = g_trans_server_ptr->co_scheduler()->SwapToWorkRoutine(coroutine_id_);
     if (ret != 0)
     {
         error_tlog("SwapToWorkRoutine failed, coroutine id=%lu.", coroutine_id_);
@@ -576,7 +571,7 @@ s32 TransactionInstance::Wait(s32* events, s32 event_count, s32 timeout_ms)
 
     trace_tlog_inst("waiting_index=%d", waiting_index_);
 
-    s32 ret = g_coroutine_scheduler.SwapToMain();
+    s32 ret = g_trans_server_ptr->co_scheduler()->SwapToMain();
     if (ret != 0)
     {
         error_tlog("SwapToMain failed, ret=%d.", ret);

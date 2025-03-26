@@ -8,7 +8,7 @@
 #include "singleton.h"
 
 // 协程管理器
-class CoroutineScheduler : public Singleton<CoroutineScheduler>
+class CoroutineScheduler
 {
 public:
     CoroutineScheduler();
