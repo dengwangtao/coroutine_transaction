@@ -45,6 +45,6 @@ private:
 
 
 // TransactionServer* g_trans_server = nullptr;
-std::unique_ptr<TransactionServer> g_trans_server_ptr;
+extern std::unique_ptr<TransactionServer> g_trans_server_ptr;
 
 #endif // SRC_TRANSACTION_TRANSACTION_SERVER_H_

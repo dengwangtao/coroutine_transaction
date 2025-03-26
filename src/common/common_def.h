@@ -8,6 +8,8 @@
 #include <iomanip>
 #include "error_define.pb.h"
 
+
+using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
 using s32 = int32_t;
@@ -105,6 +107,22 @@ public:
 
 
 
+constexpr int32_t NS_PER_US = 1000;
+constexpr int32_t US_PER_MS = 1000;
+constexpr int32_t MS_PER_SECOND = 1000;
+constexpr int64_t US_PER_SECOND = US_PER_MS * MS_PER_SECOND;
+constexpr int64_t NS_PER_MS = NS_PER_US * US_PER_MS;
+constexpr int64_t NS_PER_SECOND = NS_PER_US * US_PER_MS * MS_PER_SECOND;
+constexpr int32_t SECOND_PER_MINUTE = 60;
+constexpr int32_t MINUTE_PER_HOUR = 60;
+constexpr int32_t SECOND_PER_HOUR = MINUTE_PER_HOUR * SECOND_PER_MINUTE;
+constexpr int32_t HOUR_PER_DAY = 24;
+constexpr int32_t SECOND_PER_DAY = HOUR_PER_DAY * SECOND_PER_HOUR;
+constexpr int32_t DAY_PER_WEEK = 7;
+constexpr int32_t SECOND_PER_WEEK = DAY_PER_WEEK * SECOND_PER_DAY;
+
+
+
 
 class CommonUtil
 {
@@ -129,6 +147,12 @@ public:
     inline static constexpr s32 array_size(const T (&)[N])
     {
         return N;
+    }
+
+    template<typename T>
+    inline static T Clamp(T v, T lo, T hi)
+    {
+        return v < lo ? lo : ((hi < v) ? hi : v);
     }
 };
 

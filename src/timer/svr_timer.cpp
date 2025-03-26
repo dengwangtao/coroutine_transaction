@@ -1,9 +1,8 @@
 #include "svr_timer.h"
 #include "datetime.h"
-#include "frame_shm_obj_create.h"
-#include "shm_server_base.h"
-#include "oss_tlog_util.h"
-#include "guid_gen.h"
+#include "gen_guid.h"
+#include "common_def.h"
+#include "transaction/transaction_server.h"
 
 static u16 wheel_size[] = {
     1000,
@@ -30,6 +29,23 @@ static inline u32 cal_remain(u32 now, u32 expire)
     } else return expire - now;
 }
 
+
+namespace TimerMem {
+    Timer* CreateTimer()
+    {
+        return new Timer();
+    }
+
+    void DestroyTimer(Timer *timer)
+    {
+        delete timer;
+    }
+}
+
+
+
+
+
 TIMEOUTCBFUNC Timer::timer_func_array[];
 
 s32 Timer::OnTimeout(u64 curms)
@@ -37,7 +53,7 @@ s32 Timer::OnTimeout(u64 curms)
     TIMEOUTCBFUNC func = timer_func_array[timer_func_id_];
     if(func == NULL)
     {
-        error_tlog("unregister timer func id<%u>", timer_func_id_);
+        LogError() << "unregister timer func id=" << timer_func_id_;
         return -1;
     }
     // 回调中增加 timer_id 参数
@@ -53,12 +69,12 @@ s32 Timer::RegisterTimerFunc(u32 timer_func_id, TIMEOUTCBFUNC func)
 {
     if(timer_func_id <= E_BASE_TIMER_FUNC_ID_INVALID || timer_func_id >= MAX_TIMER_FUNC_ID_NUM)
     {
-        error_tlog("invalid timer func id<%u>", timer_func_id);
+        LogError() << "invalid timer func id=" << timer_func_id;
         return -1;
     }
     if(timer_func_array[timer_func_id] != NULL)
     {
-        error_tlog("timer func id repeated.<%u>", timer_func_id);
+        LogError() << "timer func id repeated. id=" << timer_func_id;
         return -2;
     }
     timer_func_array[timer_func_id] = func;
@@ -72,7 +88,7 @@ void TimerMgr::Proc()
         return;//没有注册过定时器
     }
 
-    u64 now = DateTime::GetNowMSec();
+    u64 now = DateTime::GetNowSteadyMSec();
     if(now < lasttick_)
     {
         // 发生时间倒回的话，之前的定时器无法在指定时间超时。暂时先保证下面loop不
@@ -140,11 +156,10 @@ void TimerMgr::Fire(TimeWheel *wheel, u64 tick)
             if(wheel->type == WHEEL_TYPE_SEC)
             {
                 timer->is_in_proc_ = true;
-                OssCtxHelper ctx(E_OSS_CTX_TYPE_TIMER, timer->timer_id());
                 ret = timer->OnTimeout(tick);
                 if(ret != 0)
                 {
-                    error_tlog("on timeout exec failed");
+                    LogError() << "on timeout exec failed";
                 }
                 timer->is_in_proc_ = false;
 
@@ -186,51 +201,51 @@ u64 TimerMgr::RegisterTimer(u32 timeout, u32 interval, s32 repeats,
     if (timer_func_id <= E_BASE_TIMER_FUNC_ID_INVALID ||
         timer_func_id >= MAX_TIMER_FUNC_ID_NUM)
     {
-        error_tlog("invalid timer_func_id=%d", timer_func_id);
+        LogError() << "invalid timer_func_id=" << timer_func_id;
         return INVALID_TIMER_ID;
     }
 
     if ((data_len > 0 && user_data == NULL) || data_len > TIMER_CB_DATA_MAX_LEN)
     {
-        error_tlog("invalid input data (data len: %d)", data_len);
+        LogError() << "invalid input data (data len: "<<data_len<<")";
         return INVALID_TIMER_ID;
     }
-    u64 timer_id = GuidGen::Instance().GenLocalGuid(E_GUID_TYPE_TIMER);
+    u64 timer_id = GenGUID();
     if (unlikely(timer_id == 0))
     {
-        critl_tlog("timer_id invalid");
+        LogFatal() << "timer_id invalid";
         return INVALID_TIMER_ID;
     }
     auto it = timers_.find(timer_id);
     if (unlikely(it != timers_.end()))
     {
-        critl_tlog("timer_id=%lu is duplicate", timer_id);
+        LogFatal() << "timer_id="<<timer_id<<" is duplicate";
         return INVALID_TIMER_ID;
     }
-    Timer *timer = FrameShmObjCreate::CreateTimer();
+    Timer *timer = TimerMem::CreateTimer();
     if(NULL == timer)
     {
-        error_tlog("call Timer alloc failed");
+        LogError() << "call Timer alloc failed";
         return INVALID_TIMER_ID;
     }
     timer->set_timer_id(timer_id);
 
-    trace_tlog("[shmobj create timer_node] shmobj_type<%d> interval<%u> timer_id<%lu> repeats<%d> timer_func_id<%d>",
-               E_BASE_SHM_OBJ_TIME_NODE, interval, timer_id, repeats, timer_func_id);
+    LogTrace() << "[obj create timer_node]" << _LogK(interval)
+            << _LogK(timer_id) << _LogK(repeats) << _LogK(timer_func_id);
 
     // 向hashmap中插入新定时器
     auto ret = timers_.insert(std::make_pair(timer_id, timer));
     // 插入失败
     if(false == ret.second)
     {
-        FrameShmObjCreate::DeleteTimer(timer);
-        debug_tlog("[shmobj delete timer_node] shmobj_type<%d> timer_id<%lu> repeats<%d> timer_func_id<%d>",
-                   E_BASE_SHM_OBJ_TIME_NODE, timer_id, repeats, timer_func_id);
+        TimerMem::DestroyTimer(timer);
+        LogDebug() << "[obj delete timer_node]"
+            << _LogK(timer_id) << _LogK(repeats) << _LogK(timer_func_id);
         return INVALID_TIMER_ID;
     }
 
-    timer->timeout_ = BaseUtil::Clamp(timeout, 1, MAX_TIMEOUT);
-    timer->interval_ = BaseUtil::Clamp(interval, 1, MAX_TIMEOUT);
+    timer->timeout_ = CommonUtil::Clamp(timeout, 1U, (u32)MAX_TIMEOUT);
+    timer->interval_ = CommonUtil::Clamp(interval, 1U, (u32)MAX_TIMEOUT);
     timer->timer_func_id_ = timer_func_id;
     timer->repeats_ = repeats;
     timer->forever_ = (repeats == 0);
@@ -240,7 +255,7 @@ u64 TimerMgr::RegisterTimer(u32 timeout, u32 interval, s32 repeats,
         memcpy(timer->data_, user_data, data_len);
     }
 
-    u64 now = DateTime::GetNowMSec();
+    u64 now = DateTime::GetNowSteadyMSec();
 
     if (NULL == tick_)
     {
@@ -267,7 +282,7 @@ s32 TimerMgr::GetRemainNum(u64 timer_id) const
     auto it = timers_.find(timer_id);
     if (it == timers_.end() || it->second == NULL)
     {
-        debug_tlog("can not find timer_id<%lu>", timer_id);
+        LogDebug() << "can not find timer_id=" << timer_id;
         return 0;
     }
     s32 ret_num = it->second->forever_ ? -1 : it->second->repeats_;
@@ -280,10 +295,10 @@ u32 TimerMgr::GetRemainMs(u64 timer_id) const
     auto it = timers_.find(timer_id);
     if (it == timers_.end() || it->second == NULL)
     {
-        debug_tlog("can not find timer_id<%lu>", timer_id);
+        LogDebug() << "can not find timer_id=" << timer_id;
         return 0;
     }
-    u64 cur_ms = DateTime::GetNowMSec();
+    u64 cur_ms = DateTime::GetNowSteadyMSec();
     if (cur_ms >= it->second->expire_)
     {
         return 0;
@@ -299,7 +314,7 @@ u64 TimerMgr::GetExpireMs(u64 timer_id) const
     auto it = timers_.find(timer_id);
     if (it == timers_.end() || it->second == NULL)
     {
-        error_tlog("can not find timer_id<%lu>", timer_id);
+        LogError() << "can not find timer_id=" << timer_id;
         return 0;
     }
     return it->second->expire_;
@@ -310,14 +325,14 @@ s32 TimerMgr::DestroyTimer(u64 timer_id)
 {
     if(INVALID_TIMER_ID == timer_id)
     {
-        error_tlog("invalid args.");
+        LogError() << "invalid args.";
         return -1;
     }
 
     auto it = timers_.find(timer_id);
     if(it == timers_.end())
     {
-        debug_tlog("can not find timer_id<%lu>", timer_id);
+        LogDebug() << "can not find timer_id=" << timer_id;
         return 0;
     }
 
@@ -339,7 +354,7 @@ void TimerMgr::DeleteTimer(Timer* timer)
 {
     if(NULL == timer)
     {
-        error_tlog("invalid args.");
+        LogError() << "invalid args.";
         return;
     }
 
@@ -349,9 +364,10 @@ void TimerMgr::DeleteTimer(Timer* timer)
     {
         UnRegisterTimer(timer);
     }
-    trace_tlog("[shmobj delete timer_node] shmobj_type<%d> timer_id<%lu> func_id<%u>", E_BASE_SHM_OBJ_TIME_NODE,
-               timer_id, timer->timer_func_id_);
-    FrameShmObjCreate::DeleteTimer(timer);
+    
+    LogTrace() << "[obj create timer_node]"
+            << _LogK(timer_id) << _LogKV("timer_func_id", timer->timer_func_id_);
+    TimerMem::DestroyTimer(timer);
 
     timers_.erase(timer_id);
 }
@@ -371,10 +387,10 @@ s32 TimerMgr::UnRegisterTimer(Timer *timer)
 s32 TimeWheel::Init(s32 wheel_type)
 {
     type = wheel_type;
-    tlist = share_memory_new_array<DoubLink>(wheel_size[type]);
+    tlist = new DoubLink[wheel_size[type]];
     if (NULL == tlist)
     {
-        error_tlog("init wheel list failed.");
+        LogError() << "init wheel list failed.";
         return -1;
     }
 
@@ -387,7 +403,7 @@ void TimeWheel::Destroy()
 {
     if (tlist)
     {
-        share_memory_free(tlist);
+        delete[] tlist;
     }
 }
 
@@ -409,7 +425,7 @@ s32 TimerMgr::Init()
         s32 ret = wheels_[i].Init(i);
         if (ret != 0)
         {
-            error_tlog("wheel <%d> init failed.ret<%d>.", i, ret);
+            LogError() << "wheel <"<<i<<"> init failed.ret<"<<ret<<">.";
             return -1;
         }
     }
@@ -433,7 +449,7 @@ void TimerWrapper::Clear()
 {
     if (id_ != INVALID_TIMER_ID)
     {
-        g_shm_svr->time_mgr()->DestroyTimer(id_);
+        g_trans_server_ptr->timer_mgr()->DestroyTimer(id_);
         id_ = INVALID_TIMER_ID;
     }
 }

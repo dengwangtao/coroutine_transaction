@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <cstring>
+#include <unordered_map>
 #include <type_traits>
 #include "singleton.h"
 #include "linklist.h"
@@ -198,7 +199,7 @@ private:
     u64    *tick_;
     u64     lasttick_;
     TimeWheel wheels_[WHEEL_TYPE_MAX];
-    ShmHashMap<u64, Timer*> timers_;
+    std::unordered_map<u64, Timer*> timers_;
 };
 
 namespace acm
