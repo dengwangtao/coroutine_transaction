@@ -61,7 +61,9 @@ Transaction* DemoTransactionServer::GetTranByType(s32 type) const
     {
     case E_TRANSACTION_TYPE_DEMO:
         return &DemoTransaction::Instance();
-
+    case E_TRANSACTION_TYPE_DEMO_2:
+        return &DemoTransaction2::Instance();
+        
     default:
         LogError() << "unknown tran type=" << type;
         break;

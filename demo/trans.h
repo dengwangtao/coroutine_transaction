@@ -18,8 +18,21 @@ public:
 
 private:
     TestCmd cmd1_;
-    TestCmd cmd2_;
-    TestCmd cmd3_;
+    TestCmd2 cmd2_;
+    TestCmd3 cmd3_;
+};
+
+
+
+class DemoTransaction2 : public Transaction, public Singleton<DemoTransaction2>
+{
+public:
+    DemoTransaction2();
+
+private:
+    TestCmd cmd1_;
+    TestCmd2 cmd2_;
+    TestCmd3 cmd3_;
 };
 
 #endif //DEMO_TRANS_H
