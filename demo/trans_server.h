@@ -18,7 +18,7 @@ public:
 
     Transaction *GetTranByType(s32 type) const override;
 
-    s32 Start(u32 thread_num = 4);
+    s32 Start();
     void OnConnection(const dwt::TcpConnectionPtr& conn);
     void OnMessage(const dwt::TcpConnectionPtr& conn, dwt::Buffer* buf, dwt::Timestamp time);
 

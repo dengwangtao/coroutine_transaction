@@ -67,7 +67,7 @@ add_executable(demo main.cpp ${ALL_DIR})
 
 
 
-set(DEP_LIBS protobuf pthread transaction)
+set(DEP_LIBS protobuf pthread transaction tran_network)
 
 
 target_link_libraries(demo ${DEP_LIBS})

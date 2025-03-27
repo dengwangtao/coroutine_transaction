@@ -1,9 +1,14 @@
 #include "trans_server.h"
 #include "trans.h"
 #include "transaction_server.h"
+#include "InetAddress.h"
+#include "EventLoop.h"
+#include "peer_mgr.h"
+#include "gm.h"
 
 s32 DemoTransactionServer::Init()
 {
+    LogDebug() << "DemoTransactionServer::Init";
     s32 ret = TransactionServer::Init();
     if (ret != 0)
     {
@@ -40,6 +45,13 @@ s32 DemoTransactionServer::Init()
     g_trans_server_ptr = addr_server;
     // g_trans_server_ptr = std::unique_ptr<DemoTransactionServer>(addr_server); // C++11不支持make_unique...
 
+    if (! g_trans_server_ptr)
+    {
+        LogFatal() << "Init DemoTransactionServer failed, g_trans_server_ptr is nullptr";
+        return -3;
+    }
+
+    LogDebug() << "DemoTransactionServer::Init done";
     return 0;
 }
 
@@ -58,9 +70,9 @@ Transaction* DemoTransactionServer::GetTranByType(s32 type) const
     return nullptr;
 }
 
-s32 DemoTransactionServer::Start(u32 thread_num)
+s32 DemoTransactionServer::Start()
 {
-    tcp_server_->setThreadNum(thread_num);
+    tcp_server_->setThreadNum(1);
     tcp_server_->start();
     event_loop_->loop();
     return 0;
@@ -68,17 +80,38 @@ s32 DemoTransactionServer::Start(u32 thread_num)
 
 void DemoTransactionServer::OnConnection(const dwt::TcpConnectionPtr& conn)
 {
-    LogInfo() << "new connection from " << conn->peerAddress().toIpPort();
+    auto peer = conn->peerAddress().toIpPort();
+    
     if (! conn->connected())
     {
-        LogInfo() << "connection from " << conn->peerAddress().toIpPort() << " closed";
+        g_peer_mgr.remove_peer(peer);
+        LogInfo() << "connection from " << peer << " closed";
         conn->shutdown();
+    }
+    else
+    {
+        auto peer_id = g_peer_mgr.add_peer(peer);
+        LogInfo() << "new connection from " << peer << " peer_id=" << peer_id;
     }
 }
 
 void DemoTransactionServer::OnMessage(const dwt::TcpConnectionPtr& conn, dwt::Buffer* buf, dwt::Timestamp time)
 {
+    auto peer = conn->peerAddress().toIpPort();
+    auto peer_id = g_peer_mgr.get_peer_id(peer);
+    if (peer_id == 0)
+    {
+        LogError() << "peer_id not found for " << peer;
+        peer_id = g_peer_mgr.add_peer(peer);
+        LogInfo() << "create new peer_id=" << peer_id << " for " << peer;
+    }
+
     std::string data = buf->retrieveAllAsString();
-    LogInfo() << "receive data from " << conn->peerAddress().toIpPort() << " data=" << data;
-    conn->send(data);
+    LogInfo()   << "[thread=" << std::this_thread::get_id() << "] " 
+                << "receive data from " << conn->peerAddress().toIpPort() << " data=" << data;
+
+    std::string ret_str;
+    s32 ret = g_gm_mgr.CallGM(peer_id, data, &ret_str);
+    
+    conn->send(ret_str + "; ret=" + std::to_string(ret) + "\n");
 }

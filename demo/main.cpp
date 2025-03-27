@@ -2,56 +2,29 @@
 #include <memory>
 #include <thread>
 #include <chrono>
-#include "singleton.h"
 #include "common_def.h"
-#include "fstream"
 #include "trans_server.h"
 #include "trans.h"
 #include "transaction/transaction_server.h"
+#include "gm.h"
 
 
 int main(int argc, char *argv[])
 {
     // std::freopen(PROJECT_ROOT_DIR "/bin/log.txt", "a+", stdout);
 
-    LogInfo() << "begin main call ...";
+    RegisterAllGM(); // register all gm
 
-    DemoTransactionServer::Instance().Init();
+    s32 ret = DemoTransactionServer::Instance().Init();
    
-    if (! g_trans_server_ptr)
+    if (ret)
     {
-        LogFatal() << "new DemoTransactionServer failed";
-        return -1;
+        LogFatal() << "DemoTransactionServer::Instance().Init() failed." << _LogK(ret);
+        return ret;
     }
 
-    u64 owner = 123456789;
-    TransactionInstance* tran_inst = nullptr;
-    g_trans_server_ptr->StartCommonTransaction(
-        DemoTransaction::Instance(),
-        owner,
-        &tran_inst
-    );
+    auto& server = DemoTransactionServer::Instance();
 
-
-    u64 data = 100;
-
-    for (s32 _ = 0; _ < 10; ++ _)
-    {
-        for (s32 i = E_TRAN_EVENT_TYPE_MAX - 10; i <= E_TRAN_EVENT_TYPE_MAX; ++ i)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            auto* ti = g_trans_server_ptr->tran_mgr()->GetTranInst(tran_inst->id());
-            if (! ti)
-            {
-                LogInfo() << "transaction instance " << tran_inst->id() <<" not found";
-                goto exit;
-            }
-            g_trans_server_ptr->SendMsgEventToTran(tran_inst->id(), i, &data);
-        }
-    }
-
-exit:
-
-    LogInfo() << "end main call ...";
+    server.Start();
     return 0;
 }

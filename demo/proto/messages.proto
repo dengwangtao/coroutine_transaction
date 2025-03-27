@@ -1,0 +1,9 @@
+syntax="proto2";
+
+
+
+message DemoMessage
+{
+    optional uint64 tran_id = 1;
+
+}
