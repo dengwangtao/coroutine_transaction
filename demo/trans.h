@@ -16,6 +16,8 @@ class DemoTransaction : public Transaction, public Singleton<DemoTransaction>
 public:
     DemoTransaction();
 
+    s32 OnSuccess(TransactionInstance &inst) override;
+
 private:
     TestCmd cmd1_;
     TestCmd2 cmd2_;
