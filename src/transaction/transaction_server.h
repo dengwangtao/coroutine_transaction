@@ -9,11 +9,6 @@
 
 class Transaction;
 class TransactionInstance;
-namespace google {
-    namespace protobuf {
-        class Message;
-    }
-}
 
 class TransactionServer
 {

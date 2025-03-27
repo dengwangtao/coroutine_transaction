@@ -17,7 +17,7 @@ execute_process(
 
 
 
-# include_directories(${SRC_DIR})
+include_directories(${SRC_DIR})
 include_directories(${SRC_DIR}/proto)
 include_directories(${SRC_DIR}/common)
 include_directories(${SRC_DIR}/coroutine)
