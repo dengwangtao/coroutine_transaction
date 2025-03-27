@@ -188,7 +188,7 @@ u64 CoroutineScheduler::AllocCoroutineID()
 
     // return alloc_id_;
 
-    return GenGUID();
+    return GenGUID(OBJ_TYPE_COROUTINE);
 }
 
 s32 CoroutineScheduler::Resume()

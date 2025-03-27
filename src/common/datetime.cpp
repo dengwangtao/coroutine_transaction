@@ -1,8 +1,8 @@
 #include "datetime.h"
 
 
-const std::string DateTime::kDateTimeFormat = "%Y-%m-%d %H:%M:%S";
-const std::string DateTime::kDateTimeTzFormat = "%Y-%m-%d %H:%M:%S %z";
+const std::string DateTime::kDateTimeFormat = "%Y-%m-%d_%H:%M:%S";
+const std::string DateTime::kDateTimeTzFormat = "%Y-%m-%d_%H:%M:%S %z";
 const std::string DateTime::kOffsetFormat = "%H:%M:%S";
 
 

@@ -43,12 +43,14 @@ int main(int argc, char *argv[])
             auto* ti = g_trans_server_ptr->tran_mgr()->GetTranInst(tran_inst->id());
             if (! ti)
             {
-                break;
+                LogInfo() << "transaction instance " << tran_inst->id() <<" not found";
+                goto exit;
             }
             g_trans_server_ptr->SendMsgEventToTran(tran_inst->id(), i, &data);
         }
     }
 
+exit:
 
     LogInfo() << "end main call ...";
     return 0;

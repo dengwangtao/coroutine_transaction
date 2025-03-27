@@ -210,7 +210,7 @@ u64 TimerMgr::RegisterTimer(u32 timeout, u32 interval, s32 repeats,
         LogError() << "invalid input data (data len: "<<data_len<<")";
         return INVALID_TIMER_ID;
     }
-    u64 timer_id = GenGUID();
+    u64 timer_id = GenGUID(OBJ_TYPE_TIMER);
     if (unlikely(timer_id == 0))
     {
         LogFatal() << "timer_id invalid";

@@ -6,7 +6,8 @@
 
 #define TranInstLog(LOG_LEVEL)                      \
     Log##LOG_LEVEL() << "[TranInst: "               \
-                     << _LogKV2("tran", type_, id_) \
+                     << _LogKV("type", type_)       \
+                     << _LogKV("guid", GUIDStr(id_))\
                      << _LogKV("owner", owner_id_) << "] "
 
 
@@ -39,7 +40,7 @@ void TransactionInstance::TransactionOnTimeout(
 
 
 TransactionInstance::TransactionInstance(s32 type, u64 owner_id)
-    : id_{ GenGUID() },
+    : id_{ GenGUID(OBJ_TYPE_TRANSACTION_INSTANCE) },
       owner_id_{owner_id},
       type_{type}
 {

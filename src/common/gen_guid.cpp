@@ -1,11 +1,45 @@
 #include "gen_guid.h"
 #include <chrono>
+#include "datetime.h"
+#include <sstream>
 
+static const char* OBJ_TYPE_Name(OBJ_TYPE type)
+{
+    switch (type)
+    {
+        case OBJ_TYPE_INVALID:
+            return "INVALID";
+        case OBJ_TYPE_TRANSACTION_INSTANCE:
+            return "TRANSACTION_INSTANCE";
+        case OBJ_TYPE_COROUTINE:
+            return "COROUTINE";
+        case OBJ_TYPE_TIMER:
+            return "TIMER";
+        default:
+            return "UNKNOWN";
+    }
+}
 
-// 从 1970-01-01 00:00:00 到 2025-01-01 00:00:00 的秒数
-constexpr u32 kSecFrom19700101To20250101 = 1735689600;
+std::string GUIDStr(u64 guid)
+{
+    u64 type = (guid >> (64 - kTypeBits)) & kTypeMask;
+    u64 timestamp = (guid >> kSeqBits) & kTimestampMask;
+    timestamp = kSecFrom19700101To20250101 + timestamp;
+    u64 seq = guid & kSeqMask;
+    
+    DateTime::Format(timestamp);
 
-u64 GenGUID()
+    std::ostringstream oss;
+    oss << "{"
+        << "type="<< OBJ_TYPE_Name(static_cast<OBJ_TYPE>(type))
+        << ", timestamp="<< DateTime::Format(timestamp)
+        << ", seq="<< seq
+        << "}";
+    
+    return oss.str();
+}
+
+u64 GenGUID(OBJ_TYPE type)
 {
     static u32 last_s = 0, cur_seq = 0;
 
@@ -21,26 +55,14 @@ u64 GenGUID()
         ++ cur_seq;
     }
 
-    constexpr int kPart01Bits = 4;
-    constexpr int kPart02Bits = 12;
-    constexpr int kTimestampBits = 30;
-    constexpr int kSeqBits = 18;
-
-    constexpr u64 kPart01Mask = (1ULL << kPart01Bits) - 1;
-    constexpr u64 kPart02Mask = (1ULL << kPart02Bits) - 1;
-    constexpr u64 kTimestampMask = (1ULL << kTimestampBits) - 1;
-    constexpr u64 kSeqMask = (1ULL << kSeqBits) - 1;
-
     // 缓存结果
-    u64 part1 = static_cast<u64>(0) & kPart01Mask;
-    u64 part2 = static_cast<u64>(0) & kPart02Mask;
+    u64 utype = static_cast<u64>(type) & kTypeMask;
     u64 timestamp = (static_cast<u64>(cur_s - kSecFrom19700101To20250101)) & kTimestampMask;
     u64 seq = static_cast<u64>(cur_seq) & kSeqMask;
 
     // 构建 GUID
     u64 guid = 0;
-    guid |= part1 << (64 - kPart01Bits);
-    guid |= part2 << (64 - kPart01Bits - kPart02Bits);
+    guid |= utype << (64 - kTypeBits);
     guid |= timestamp << kSeqBits;
     guid |= seq;
 
