@@ -23,9 +23,6 @@ public:
 
     s32 SendMsgEvent(s32 type, void* msg);
 
-    // 也许我们可以添加一个TransactionEventContext来传递所有必要的信息
-    s32 SendMsgEvent(s32 type, const SSHead &head, const google::protobuf::Message &msg);
-
     s32 Wait(s32* events, s32 event_count, s32 timeout_ms);
 
     s32 Abort();
@@ -46,18 +43,15 @@ public:
     }
 
     void SetEventArg(s32 type, void* msg);
-    void SetEventArg(s32 type, const SSHead &head, const google::protobuf::Message &body);
 
     TransactionEventArg& event_arg() { return event_arg_; }
 
     u64 owner_id() const { return owner_id_; }
     u64 id() const { return id_; }
-    u32 cs_req_id() const { return cs_req_id_; }
     s32 type() const { return type_; }
     s32 event_type() const { return event_type_; }
     u64 coroutine_id() const { return coroutine_id_; }
     void set_coroutine_id(u64 id) { coroutine_id_ = id; }
-    void set_cs_req_id(u32 cs_req_id) { cs_req_id_ = cs_req_id; }
 
     // 完成不代表所有command都跑完了, 可能提前完成. 如果需要区分, 增加接口同时
     // 检查curr_index_ >= cmd_array_.size()
@@ -106,7 +100,6 @@ private:
 
     const u64 id_ = 0;                // 自身id
     const u64 owner_id_ = 0;    // 拥有这个事务的对象ID
-    u32 cs_req_id_ = 0; // 发起事务的客户端请求ID
     u64 timer_id_ = 0; // 定时器ID, 用来处理超时
     u64 coroutine_id_ = 0; // 对应协程ID, 每个事务只对应一个协程
     u64 param1_ = 0;       // 可以携带额外两个参数

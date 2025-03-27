@@ -23,7 +23,7 @@ include_directories(${SRC_DIR}/common)
 include_directories(${SRC_DIR}/coroutine)
 include_directories(${SRC_DIR}/transaction)
 include_directories(${SRC_DIR}/timer)
-include_directories(${SRC_DIR}/thirdparty/abseil-cpp/include)
+# include_directories(${SRC_DIR}/thirdparty/abseil-cpp/include)
 
 link_libraries(${PROJECT_SOURCE_DIR}/lib)
 

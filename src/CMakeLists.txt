@@ -23,8 +23,8 @@ execute_process(
 include_directories(${SRC_DIR})
 
 # abseil-cpp
-include_directories(${PROJECT_THIRDPARTY_DIR}/abseil-cpp/include)
-include(${PROJECT_THIRDPARTY_DIR}/abseil-cpp/lib64/cmake/absl/abslConfig.cmake)
+# include_directories(${PROJECT_THIRDPARTY_DIR}/abseil-cpp/include)
+# include(${PROJECT_THIRDPARTY_DIR}/abseil-cpp/lib64/cmake/absl/abslConfig.cmake)
 
 
 

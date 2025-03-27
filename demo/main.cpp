@@ -3,7 +3,6 @@
 #include <thread>
 #include <chrono>
 #include "singleton.h"
-#include "proto_base.pb.h"
 #include "common_def.h"
 #include "fstream"
 #include "trans_server.h"

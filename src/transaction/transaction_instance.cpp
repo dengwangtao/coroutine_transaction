@@ -76,56 +76,6 @@ void TransactionInstance::SafeRelease()
     }
 }
 
-s32 TransactionInstance::SendMsgEvent(s32 msg_type, const SSHead &head,
-                                      const google::protobuf::Message &msg)
-{
-    if (msg_type == E_TRANSACTION_EVENT_TYPE_INVALID)
-    {
-        LogError() << "invalid args";
-        return E_ERROR_INVALID_PARA;
-    }
-
-    TranInstLog(Trace) << " msg=" << msg_type;
-
-    if (msg_type == E_TRANSACTION_EVENT_TYPE_TIMEOUT)
-    {
-        timer_id_ = INVALID_TIMER_ID;
-    }
-    else if (timer_id_ != INVALID_TIMER_ID)
-    {
-        s32 ret = g_trans_server_ptr->timer_mgr()->DestroyTimer(timer_id_);
-        if (ret != 0)
-        {
-            LogError() << "destroy transaction timer=" << timer_id_ << " failed";
-        }
-        timer_id_ = INVALID_TIMER_ID;
-    }
-
-    bool is_default_event = IsDefaultEvent(msg_type);
-    if (!is_default_event)
-    {
-        s32 *event = std::find(events_, events_ + event_count_, msg_type);
-        if (event == events_ + event_count_)
-        {
-            TranInstLog(Error) << "not wait for msg=" << msg_type;
-            for (s32 i = 0; i < event_count_; ++i)
-            {
-                LogError() << "waiting msg[" << i << "]: " << events_[i];
-            }
-            return E_ERROR_LOGIC;
-        }
-    }
-
-    SetEventArg(msg_type, head, msg);
-    s32 ret = g_trans_server_ptr->co_scheduler()->SwapToWorkRoutine(coroutine_id_);
-    if (ret != 0)
-    {
-        LogError() << "SwapToWorkRoutine failed, coroutine id=" << coroutine_id_;
-        return ret;
-    }
-
-    return 0;
-}
 
 s32 TransactionInstance::SendMsgEvent(s32 msg_type, void *data)
 {
@@ -278,12 +228,6 @@ void TransactionInstance::SetEventArg(s32 type, void *msg)
     event_arg_.msg = msg;
 }
 
-void TransactionInstance::SetEventArg(s32 type, const SSHead &head,
-                                      const google::protobuf::Message &body)
-{
-    event_type_ = type;
-    event_arg_.msg = TransactionEventArg::ServerProtoMessage{&head, &body};
-}
 
 s32 TransactionInstance::Resume()
 {

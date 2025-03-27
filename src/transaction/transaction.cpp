@@ -8,7 +8,6 @@
 #include "transaction_server.h"
 #include "transaction_instance.h"
 #include "transaction_mgr.h"
-#include "cs_req_id_util.h"
 #include "gen_guid.h"
 
 #define TranLog(LOG_LEVEL) \
@@ -63,8 +62,6 @@ s32 Transaction::Start(TransactionInstance *inst)
         return E_ERROR_LOGIC;
     }
 
-    // TODO: 待梳理
-    (void)cs_req_id_util::SetTranInst(*inst);
 
     LogDebug() << "Ready Create A Coroutine: " << _LogKV("stack_size", inst->stack_size())
                << _LogKV("tran_id", inst->id()) << _LogKV("owner", inst->owner_id());
@@ -182,7 +179,6 @@ void Transaction::HandleResult(TransactionInstance &inst)
         return;
     }
 
-    auto cris = cs_req_id_util::Push(inst.cs_req_id());
 
     if (inst.is_complete())
     {
@@ -208,7 +204,6 @@ void Transaction::HandleResult(TransactionInstance &inst)
 
     Finally(inst);
 
-    cs_req_id_util::Pop(cris);
 }
 
 s32 Transaction::Undo(TransactionInstance &inst)
