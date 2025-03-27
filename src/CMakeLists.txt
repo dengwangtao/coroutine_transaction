@@ -22,6 +22,15 @@ include_directories(${PROJECT_THIRDPARTY_DIR}/abseil-cpp/include)
 include(${PROJECT_THIRDPARTY_DIR}/abseil-cpp/lib64/cmake/absl/abslConfig.cmake)
 
 
+
+# 执行 build.sh 脚本
+add_custom_target(
+  RunShellScript ALL
+  COMMAND bash "${PROJECT_PROTO_DIR}/build.sh" "build"
+  WORKING_DIRECTORY ${PROJECT_PROTO_DIR}
+  COMMENT "executing build.sh"
+)
+
 # proto
 include_directories(${PROJECT_PROTO_DIR})
 aux_source_directory(${PROJECT_PROTO_DIR} PROTO_CODE)
