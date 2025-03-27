@@ -6,6 +6,7 @@ set (EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 
 set (DEMO_DIR ${PROJECT_SOURCE_DIR}/demo)
 set (SRC_DIR ${PROJECT_SOURCE_DIR}/src)
+set (NETWORK_DIR ${PROJECT_SOURCE_DIR}/network)
 
 
 
@@ -27,6 +28,7 @@ include_directories(${SRC_DIR}/timer)
 
 link_libraries(${PROJECT_SOURCE_DIR}/lib)
 
+include_directories(${NETWORK_DIR})
 
 
 # 获取项目根目录的绝对路径
