@@ -12,7 +12,7 @@
 #include "gen_guid.h"
 
 #define TranLog(LOG_LEVEL) \
-    Log##LOG_LEVEL() << "[" << GetName() << "] "
+    Log##LOG_LEVEL() << "[Tran: " << GetName() << "] "
 
 
 Transaction::Transaction(s32 type, bool is_need_undo)

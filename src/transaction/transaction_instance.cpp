@@ -5,8 +5,9 @@
 
 
 #define TranInstLog(LOG_LEVEL)                      \
-    Log##LOG_LEVEL() << _LogKV2("tran", type_, id_) \
-                     << _LogKV("owner", owner_id_) << " "
+    Log##LOG_LEVEL() << "[TranInst: "               \
+                     << _LogKV2("tran", type_, id_) \
+                     << _LogKV("owner", owner_id_) << "] "
 
 
 void TransactionInstance::TransactionOnTimeout(

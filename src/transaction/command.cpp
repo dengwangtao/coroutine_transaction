@@ -6,8 +6,8 @@
 
 
 
-#define TranLog(LOG_LEVEL) \
-    Log##LOG_LEVEL() << "[" << GetName() << "] "
+#define CmdLog(LOG_LEVEL) \
+    Log##LOG_LEVEL() << "[Commond: " << GetName() << "] "
 
 
 s32 Command::DoAndWait(TransactionInstance &inst)
@@ -15,20 +15,20 @@ s32 Command::DoAndWait(TransactionInstance &inst)
     s32 ret = Do(inst);
     if (ret != 0)
     {
-        TranLog(Error) << _LogKV2("trans", inst.type(), inst.id()) << " Do failed, " << _LogK(ret);
+        CmdLog(Error) << _LogKV2("trans", inst.type(), inst.id()) << " Do failed, " << _LogK(ret);
         return ret;
     }
 
     if (!inst.should_wait_current_cmd())
     {
-        TranLog(Error) << _LogKV2("trans", inst.type(), inst.id()) << " no need to wait ";
+        CmdLog(Error) << _LogKV2("trans", inst.type(), inst.id()) << " no need to wait ";
         return 0;
     }
 
     ret = Wait(inst);
     if (ret != 0)
     {
-        TranLog(Error) << _LogKV2("trans", inst.type(), inst.id()) << " Wait failed, " << _LogK(ret);
+        CmdLog(Error) << _LogKV2("trans", inst.type(), inst.id()) << " Wait failed, " << _LogK(ret);
     }
 
     return ret;
@@ -47,7 +47,7 @@ s32 Command::WaitForEvent(TransactionInstance& inst, const EventIdVec& msg_event
             return E_ERROR_SVR_INTERNAL;
         }
 
-        TranLog(Trace)  << _LogKV("uid", inst.owner_id()) << _LogKV2("tran", inst.type(), inst.id())
+        CmdLog(Trace)  << _LogKV("uid", inst.owner_id()) << _LogKV2("tran", inst.type(), inst.id())
                         << _LogKV("event", inst.event_type());
 
         auto it = std::find(events.begin(), events.end(), inst.event_type());
@@ -56,7 +56,7 @@ s32 Command::WaitForEvent(TransactionInstance& inst, const EventIdVec& msg_event
             ret = this->OnRecvMsgEvent(inst, inst.event_type());
             if (ret != 0)
             {
-                TranLog(Error) << "OnRecvMsgEvent failed, ret=" << ret;
+                CmdLog(Error) << "OnRecvMsgEvent failed, ret=" << ret;
                 return ret;
             }
             // 继续等待其他事件
@@ -68,7 +68,7 @@ s32 Command::WaitForEvent(TransactionInstance& inst, const EventIdVec& msg_event
         ret = inst.ProcDefaultEvents(is_proc);
         if (ret != 0)
         {
-            TranLog(Error) << "ProcDefaultEvents failed, ret=" << ret;
+            CmdLog(Error) << "ProcDefaultEvents failed, ret=" << ret;
             return ret;
         }
     }
@@ -80,14 +80,14 @@ s32 Command::Wait(TransactionInstance &inst)
 {
     if (do_event_id_vec_.empty())
     {
-        TranLog(Error) << "event_id not set";
+        CmdLog(Error) << "event_id not set";
         return E_ERROR_LOGIC;
     }
 
     s32 ret = WaitForEvent(inst, do_event_id_vec_);
     if (ret != 0)
     {
-        TranLog(Error) << "WaitForEvent failed, ret=" << ret;
+        CmdLog(Error) << "WaitForEvent failed, ret=" << ret;
         return ret;
     }
 
@@ -111,7 +111,7 @@ const char* Command::GetName() const
 
 s32 Command::OnTimeout(TransactionInstance &inst)
 {
-    TranLog(Error) << _LogKV2("tran_inst", inst.type(), inst.id()) << " timeout";
+    CmdLog(Error) << _LogKV2("tran_inst", inst.type(), inst.id()) << " timeout";
     return E_ERROR_TIMEOUT;
 }
 
