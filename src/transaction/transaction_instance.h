@@ -87,12 +87,6 @@ public:
 
     static void TransactionOnTimeout(u64 timer_id, void *data, size_t data_len);
 
-    uuid_t trace_id() const { return trace_id_; }
-    void set_trace_id(uuid_t v) { trace_id_ = v; }
-
-    u64 parent_span_id() const { return parent_span_id_; }
-    void set_parent_span_id(u64 v) { parent_span_id_ = v; }
-
 private:
     void set_fail_reason(s32 reason) { fail_reason_ = reason; }
 
@@ -130,9 +124,6 @@ private:
     bool is_in_undo_ = false; // 是否在执行undo中
     bool is_complete_ = false;  // 事务是否完成了
     bool is_delay_destroying_ = false;
-
-    uuid_t trace_id_ = {0, 0};
-    u64 parent_span_id_ = 0;
 
     // 有些命令在某些情况下可能是个空操作, 不需要等待
     bool should_wait_current_cmd_ = true;

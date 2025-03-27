@@ -2,14 +2,6 @@ syntax = "proto2";
 
 
 
-message SSTrace
-{
-    optional uint64 trace_id_high = 1;      //uuid_t high_
-    optional uint64 trace_id_low = 2;       //uuid_t low_
-    optional uint64 span_id = 3;
-    optional uint64 trace_start_time = 4;
-}
-
 message SSHead
 {
     required int32 cmd = 1;
@@ -40,8 +32,6 @@ message SSHead
     // the E_SS_HEAD_FLAG_FORWARD_XXX flags is set.
     optional uint64 forward_key = 10;
 
-    // Used for message trace.
-    optional SSTrace trace_info = 11;
     optional uint32 cs_req_id = 12;
 }
 
