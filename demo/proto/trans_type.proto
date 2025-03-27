@@ -1,0 +1,17 @@
+syntax= "proto2";
+
+
+enum TransactionType
+{
+    E_TRANSACTION_TYPE_INVALID = 0;
+    E_TRANSACTION_TYPE_DEMO = 1;
+    E_TRANSACTION_TYPE_MAX = 2;
+}
+
+
+enum TranEventType
+{
+    E_TRAN_EVENT_TYPE_INVALID = 1000;
+    E_TRAN_EVENT_TYPE_DEMO = 1001;
+    E_TRAN_EVENT_TYPE_MAX = 1003;
+}

@@ -47,17 +47,33 @@ public: // static functions
     }
 
 
-
-
-    static int64_t GetNowSteadySec() { return GetNowSteadyNSec() / NS_PER_SECOND; }
-    static int64_t GetNowSteadyUSec() { return GetNowSteadyNSec() / NS_PER_US; }
-    static int64_t GetNowSteadyMSec() { return GetNowSteadyNSec() / NS_PER_MS; }
-    static int64_t GetNowSteadyNSec()
-    {
-        return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    template <typename Duration>
+    static int64_t GetNowSteadyTime() {
+        return std::chrono::duration_cast<Duration>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
     }
 
-    static DateTime Now() { return {}; }
+    static int64_t GetNowSteadySec()  { return GetNowSteadyTime<std::chrono::seconds>(); }
+    static int64_t GetNowSteadyMSec() { return GetNowSteadyTime<std::chrono::milliseconds>(); }
+    static int64_t GetNowSteadyUSec() { return GetNowSteadyTime<std::chrono::microseconds>(); }
+    static int64_t GetNowSteadyNSec() { return GetNowSteadyTime<std::chrono::nanoseconds>(); }
+
+
+    // 系统时间（日历时间）
+    template <typename Duration>
+    static int64_t GetSystemTime() {
+        return std::chrono::duration_cast<Duration>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+    }
+
+    static int64_t GetSystemSec()  { return GetSystemTime<std::chrono::seconds>(); }
+    static int64_t GetSystemMSec() { return GetSystemTime<std::chrono::milliseconds>(); }
+    static int64_t GetSystemUSec() { return GetSystemTime<std::chrono::microseconds>(); }
+    static int64_t GetSystemNSec() { return GetSystemTime<std::chrono::nanoseconds>(); }
+
+    static std::string Format(int64_t timestamp_sec, const std::string& format = kDateTimeFormat);
+    static std::string NowS() { return Format(GetSystemSec()); }
+
 
 
     static int64_t GetHourStartTime(int64_t time_in_sec, int64_t offset = 0, int64_t tz_offset = GetConfigTZOffsetSec())

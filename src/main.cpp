@@ -1,3 +1,5 @@
+#if 0
+
 #include <iostream>
 #include "singleton.h"
 #include "proto_base.pb.h"
@@ -13,3 +15,6 @@
 
 
 #include "test/test_transaction.h"
+
+
+#endif

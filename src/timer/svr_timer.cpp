@@ -88,7 +88,7 @@ void TimerMgr::Proc()
         return;//没有注册过定时器
     }
 
-    u64 now = DateTime::GetNowSteadyMSec();
+    u64 now = DateTime::GetSystemMSec();
     if(now < lasttick_)
     {
         // 发生时间倒回的话，之前的定时器无法在指定时间超时。暂时先保证下面loop不
@@ -255,7 +255,7 @@ u64 TimerMgr::RegisterTimer(u32 timeout, u32 interval, s32 repeats,
         memcpy(timer->data_, user_data, data_len);
     }
 
-    u64 now = DateTime::GetNowSteadyMSec();
+    u64 now = DateTime::GetSystemMSec();
 
     if (NULL == tick_)
     {
@@ -298,7 +298,7 @@ u32 TimerMgr::GetRemainMs(u64 timer_id) const
         LogDebug() << "can not find timer_id=" << timer_id;
         return 0;
     }
-    u64 cur_ms = DateTime::GetNowSteadyMSec();
+    u64 cur_ms = DateTime::GetSystemMSec();
     if (cur_ms >= it->second->expire_)
     {
         return 0;

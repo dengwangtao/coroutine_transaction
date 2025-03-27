@@ -54,9 +54,8 @@ public:
                                u64 param2 = 0) const;
 
     s32 StartTransaction(TransactionInstance *inst) const;
-
-    s32 SendMsgEventToTran(u64 tran_id, s32 event_id, const SSHead &head,
-                           const google::protobuf::Message &message) const;
+    
+    s32 SendMsgEventToTran(u64 tran_id, s32 event_id, void* data) const;
 private:
 
     CoroutineScheduler* scheduler_ptr_ = nullptr;
@@ -66,7 +65,7 @@ private:
 };
 
 
-// TransactionServer* g_trans_server = nullptr;
-extern std::unique_ptr<TransactionServer> g_trans_server_ptr;
+extern TransactionServer* g_trans_server_ptr;
+// extern std::unique_ptr<TransactionServer> g_trans_server_ptr;
 
 #endif // SRC_TRANSACTION_TRANSACTION_SERVER_H_

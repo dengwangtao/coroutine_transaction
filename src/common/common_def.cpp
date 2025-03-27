@@ -1,6 +1,20 @@
 #include "common_def.h"
 #include <cstdio>
 #include <cxxabi.h>
+#include "datetime.h"
+#include <fstream>
+
+
+LogStream::LogStream(const char* file, int line, const char* fname, const char* level) {
+    std::cout << "[" << DateTime::NowS() << "] "
+              << "[" << level << "] "
+              << "(" << file << ":" << line << ") "
+              << "[" << fname << "] ";
+}
+
+LogStream::~LogStream() {
+    std::cout << std::endl;  // 自动追加换行
+}
 
 
 const char* uuid_t::c_str() const

@@ -59,14 +59,9 @@ struct uuid_t
 // 日志流辅助类
 class LogStream {
 public:
-    LogStream(const char* file, int line, const char* fname, const char* level) {
-        // std::cout << "[" << level << "] (" << file << ":" << std::left << std::setw(4) << line << ") [" << fname << "] ";
-        std::cout << "[" << level << "] (" << file << ":" << line << ")[" << fname << "] ";
-    }
+    LogStream(const char* file, int line, const char* fname, const char* level);
     
-    ~LogStream() {
-        std::cout << std::endl;  // 自动追加换行
-    }
+    ~LogStream();
     
     // 重载 << 运算符
     template<typename T>
@@ -76,20 +71,33 @@ public:
     }
 };
 
+// 定义宏，将绝对路径转换为相对路径
+#define __RELATIVE_FILE__ ( \
+    strstr(__FILE__, PROJECT_ROOT_DIR) ? \
+    strstr(__FILE__, PROJECT_ROOT_DIR) + strlen(PROJECT_ROOT_DIR) : \
+    __FILE__ \
+)
+
+// 函数名宏
+#ifdef USE_PRETTY_FUNCTION
+#define MY_PRETTY_FUNCTION __PRETTY_FUNCTION__
+#else
+#define MY_PRETTY_FUNCTION __FUNCTION__
+#endif
+
 // 日志宏（支持自动换行）
-#define LogFatal() LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Fatal")
-#define LogError() LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Error")
-#define LogWarn()  LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Warn ")
-#define LogInfo()  LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Info ")
-#define LogDebug() LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Debug")
-#define LogTrace() LogStream(__FILE__, __LINE__, __PRETTY_FUNCTION__, "Trace")
+#define LogFatal() LogStream(__RELATIVE_FILE__, __LINE__, MY_PRETTY_FUNCTION, "FATAL")
+#define LogError() LogStream(__RELATIVE_FILE__, __LINE__, MY_PRETTY_FUNCTION, "ERROR")
+#define LogWarn()  LogStream(__RELATIVE_FILE__, __LINE__, MY_PRETTY_FUNCTION, "WARN_")
+#define LogInfo()  LogStream(__RELATIVE_FILE__, __LINE__, MY_PRETTY_FUNCTION, "INFO_")
+#define LogDebug() LogStream(__RELATIVE_FILE__, __LINE__, MY_PRETTY_FUNCTION, "DEBUG")
+#define LogTrace() LogStream(__RELATIVE_FILE__, __LINE__, MY_PRETTY_FUNCTION, "TRACE")
 
 
 
 #define _LogK(k) #k << "<" << k << "> "
 #define _LogKV(k, v) #k << "<" << v << "> "
 #define _LogKV2(k, v1, v2) #k << "<" << v1 << "," << v2 << "> "
-
 
 
 

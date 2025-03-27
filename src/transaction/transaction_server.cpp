@@ -3,7 +3,8 @@
 #include "transaction_mem.h"
 #include "transaction_instance.h"
 
-std::unique_ptr<TransactionServer> g_trans_server_ptr;
+// std::unique_ptr<TransactionServer> g_trans_server_ptr;
+TransactionServer* g_trans_server_ptr = nullptr;
 
 
 TransactionServer::TransactionServer()
@@ -114,8 +115,8 @@ s32 TransactionServer::StartTransaction(TransactionInstance *inst) const
     return ret;
 }
 
-s32 TransactionServer::SendMsgEventToTran(u64 tran_id, s32 event_id, const SSHead &head,
-                           const google::protobuf::Message &message) const
+
+s32 TransactionServer::SendMsgEventToTran(u64 tran_id, s32 event_id, void* data) const
 {
     if (unlikely(tran_id == 0))
     {
@@ -130,7 +131,7 @@ s32 TransactionServer::SendMsgEventToTran(u64 tran_id, s32 event_id, const SSHea
         return E_ERROR_TRAN_INST_NOT_FOUND;
     }
 
-    s32 ret = inst->SendMsgEvent(event_id, head, message);
+    s32 ret = inst->SendMsgEvent(event_id, data);
     if (ret != 0)
     {
         LogError() << "SendMsgEvent failed, ret=" << ret;
