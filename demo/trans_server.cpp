@@ -17,7 +17,8 @@ s32 DemoTransactionServer::Init()
     }
 
     dwt::InetAddress addr("127.0.0.1", 8080);
-    event_loop_ = std::make_unique<dwt::EventLoop>();
+    s32 poll_timeout_ms = 2000; // poll 超时时间
+    event_loop_ = std::make_unique<dwt::EventLoop>(poll_timeout_ms);
     if (event_loop_ == nullptr)
     {
         LogError() << "make event_loop failed";
@@ -63,7 +64,7 @@ Transaction* DemoTransactionServer::GetTranByType(s32 type) const
         return &DemoTransaction::Instance();
     case E_TRANSACTION_TYPE_DEMO_2:
         return &DemoTransaction2::Instance();
-        
+
     default:
         LogError() << "unknown tran type=" << type;
         break;

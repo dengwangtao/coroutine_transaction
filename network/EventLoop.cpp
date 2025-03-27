@@ -13,7 +13,6 @@ namespace dwt {
 // 方式一个线程创建多个EventLoop
 __thread EventLoop* t_loopInThisThread = nullptr;
 
-const int kPollTimeMs = 10000; // 默认为10秒
 
 /**
  * 创建一个非阻塞的eventfd
@@ -27,8 +26,9 @@ int createEventFd() {
 }
 
 
-EventLoop::EventLoop()
-    : m_looping(false)
+EventLoop::EventLoop(int poll_timeout_ms)
+    : m_poll_timeout_ms(poll_timeout_ms)
+    , m_looping(false)
     , m_quit(false)
     , m_callingPendingFunctors(false)
     , m_threadId(CurrentThread::tid())
@@ -69,7 +69,7 @@ void EventLoop::loop() {
 
     while(!m_quit) {
         m_activeChannels.clear();
-        m_pollReturnTime = m_poller->poll(kPollTimeMs, &m_activeChannels);
+        m_pollReturnTime = m_poller->poll(m_poll_timeout_ms, &m_activeChannels);
 
         // LOG_INFO("Eventloop %p poll return", this);
 

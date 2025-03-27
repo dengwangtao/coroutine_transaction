@@ -26,7 +26,7 @@ class EventLoop : noncopyable {
 public:
     using Functor = std::function<void()>;
 
-    EventLoop();
+    EventLoop(int poll_timeout_ms = 10000);
     ~EventLoop();
 
     void loop();    // 开启事件循环
@@ -61,6 +61,7 @@ private:
     void doPendingFunctors();
 
 private:
+    const int m_poll_timeout_ms;
 
     using ChannelList = std::vector<Channel*>;
 
