@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <memory>
 
 namespace dwt{
 
@@ -30,8 +31,8 @@ TcpConnection::TcpConnection(
     , m_name(name)
     , m_state(StateE::kConnecting)
     , m_reading(true)
-    , m_socket(std::make_unique<Socket>(sockfd))
-    , m_channel(std::make_unique<Channel>(loop, sockfd))
+    , m_socket(std::unique_ptr<Socket>(new Socket(sockfd)))
+    , m_channel(std::unique_ptr<Channel>(new Channel(loop, sockfd)))
     , m_localAddr(localAddr)
     , m_peerAddr(peerAddr)
     , m_highWaterMark(64 * 1024 * 1024) /* 64M */ {

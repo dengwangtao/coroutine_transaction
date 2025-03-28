@@ -10,6 +10,7 @@ case $1 in
         rm -rf *.pb.h *.pb.cc
         ;;
     build)
+        rm -rf *.pb.h *.pb.cc
         ls | grep -E ".*\.proto$" | xargs protoc --cpp_out=. --proto_path=.
         ;;
     *)

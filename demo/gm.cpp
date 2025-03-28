@@ -77,8 +77,8 @@ s32 GMInvoke(u64 peer_id, const GMParam& param, std::string& out_str)
 s32 RegisterAllGM()
 {
     auto& mgr = GMMgr::Instance();
-    mgr.RegisterGM("start", {1, "", GMStart}); // 开始一个事务
-    mgr.RegisterGM("invoke", {2, "", GMInvoke}); // 触发一个事务
+    mgr.RegisterGM("start", GMFuncInfo(1, "", GMStart)); // 开始一个事务
+    mgr.RegisterGM("invoke", GMFuncInfo(2, "", GMInvoke)); // 触发一个事务
     return 0;
 }
 

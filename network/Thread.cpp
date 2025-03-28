@@ -27,13 +27,13 @@ void Thread::start() {
     sem_t sem;
     sem_init(&sem, false, 0);
 
-    m_thread = std::make_unique<std::thread>([&]() {
+    m_thread = std::unique_ptr<std::thread>(new std::thread([&]() {
         // 获取线程tid
         m_tid = dwt::CurrentThread::tid();
         sem_post(&sem);
 
         m_func();
-    });
+    }));
 
     sem_wait(&sem);
     // 保证线程获取到线程id后, 该函数才能返回

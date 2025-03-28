@@ -5,6 +5,7 @@
 #include "EventLoop.h"
 #include "peer_mgr.h"
 #include "gm.h"
+#include <memory>
 
 s32 DemoTransactionServer::Init()
 {
@@ -18,14 +19,14 @@ s32 DemoTransactionServer::Init()
 
     dwt::InetAddress addr("127.0.0.1", 8080);
     s32 poll_timeout_ms = 2000; // poll 超时时间
-    event_loop_ = std::make_unique<dwt::EventLoop>(poll_timeout_ms);
+    event_loop_ = std::unique_ptr<dwt::EventLoop>(new dwt::EventLoop(poll_timeout_ms));
     if (event_loop_ == nullptr)
     {
         LogError() << "make event_loop failed";
         return -1;
     }
 
-    tcp_server_ = std::make_unique<dwt::TcpServer>(event_loop_.get(), addr, "DemoTransactionServer");
+    tcp_server_ = std::unique_ptr<dwt::TcpServer>(new dwt::TcpServer(event_loop_.get(), addr, "DemoTransactionServer"));
     if (tcp_server_ == nullptr)
     {
         LogError() << "make tcp_server failed";

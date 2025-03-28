@@ -4,6 +4,7 @@
 #include "TcpConnection.h"
 
 #include <string.h>
+#include <memory>
 
 namespace dwt {
 
@@ -20,8 +21,8 @@ TcpServer::TcpServer(
         : m_loop(checkLoopNotNull(loop))
         , m_ipPort(listenAddr.toIpPort())
         , m_name(name)
-        , m_acceptor(std::make_unique<Acceptor>(loop, listenAddr, option == Option::kReusePort))
-        , m_threadPool(std::make_shared<EventLoopThreadPool>(loop, name))
+        , m_acceptor(std::unique_ptr<Acceptor>(new Acceptor(loop, listenAddr, option == Option::kReusePort)))
+        , m_threadPool(std::shared_ptr<EventLoopThreadPool>(new EventLoopThreadPool(loop, name)))
         , m_connectionCallback()
         , m_messageCallback()
         , m_started(0)

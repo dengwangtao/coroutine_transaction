@@ -15,6 +15,10 @@ struct GMFuncInfo
     u32 min_params = 1;
     std::string desc;
     GMFunc func;
+    GMFuncInfo() = default;
+    GMFuncInfo(u32 min_params, const std::string& desc, const GMFunc& func)
+        : min_params(min_params), desc(desc), func(func)
+    {}
 };
 
 using GMMap = std::unordered_map<std::string, GMFuncInfo>;
