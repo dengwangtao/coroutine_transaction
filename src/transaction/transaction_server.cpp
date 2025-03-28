@@ -42,6 +42,35 @@ s32 TransactionServer::Init()
         return E_ERROR_INVALID_PARA;
     }
 
+    // 注册定时器函数
+    s32 ret = RegisterTimerFunc();
+    if (ret != 0)
+    {
+        LogError() << "RegisterTimerFunc Faild, ret=" << ret;
+        return ret;
+    }
+
+    return 0;
+}
+
+s32 TransactionServer::OnTick()
+{
+    timer_mgr()->Proc();
+    
+    return 0;
+}
+
+// 注册定时器函数
+s32 TransactionServer::RegisterTimerFunc()
+{
+    s32 ret = 0;
+    ret |= Timer::RegisterTimerFunc(E_BASE_TIMER_FUNC_ID_TRANSACTION_ON_TIMEOUT,
+        TransactionInstance::TransactionOnTimeout);
+    if (ret != 0)
+    {
+        LogError() << "register timer func error=" << ret;
+        return -1;
+    }
     return 0;
 }
 

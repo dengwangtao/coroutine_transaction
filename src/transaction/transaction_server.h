@@ -41,8 +41,10 @@ public:
         return timer_mgr_ptr_;
     }
 
+    virtual s32 OnTick();
 
-
+    // 注册定时器函数
+    virtual s32 RegisterTimerFunc();
 
     s32 StartCommonTransaction(Transaction& transaction, u64 owner_id,
                                TransactionInstance** saved_inst, u64 param1 = 0,

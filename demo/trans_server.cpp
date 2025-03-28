@@ -18,7 +18,7 @@ s32 DemoTransactionServer::Init()
     }
 
     dwt::InetAddress addr("127.0.0.1", 8080);
-    s32 poll_timeout_ms = 2000; // poll 超时时间
+    s32 poll_timeout_ms = 50; // poll 超时时间ms
     event_loop_ = std::unique_ptr<dwt::EventLoop>(new dwt::EventLoop(poll_timeout_ms));
     if (event_loop_ == nullptr)
     {
@@ -78,7 +78,15 @@ s32 DemoTransactionServer::Start()
 {
     tcp_server_->setThreadNum(1);
     tcp_server_->start();
-    event_loop_->loop();
+    // event_loop_->loop();
+    event_loop_->set_quit(false);
+
+    while (! event_loop_->is_quit())
+    {
+        TransactionServer::OnTick();
+        event_loop_->OnTick();
+    }
+
     return 0;
 }
 

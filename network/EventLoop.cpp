@@ -10,7 +10,7 @@
 
 namespace dwt {
 
-// 方式一个线程创建多个EventLoop
+// 防止一个线程创建多个EventLoop
 __thread EventLoop* t_loopInThisThread = nullptr;
 
 
@@ -83,6 +83,23 @@ void EventLoop::loop() {
 
     LOG_INFO("Eventloop %p stop looping", this);
     m_looping = false;
+}
+
+int EventLoop::OnTick()
+{
+    if (! m_quit)
+    {
+        m_activeChannels.clear();
+        m_pollReturnTime = m_poller->poll(m_poll_timeout_ms, &m_activeChannels);
+
+        for(Channel* channel : m_activeChannels) {
+            // m_currentActiveChannel = channel;
+            channel->handleEvent(m_pollReturnTime);
+        }
+
+        doPendingFunctors();
+    }
+    return 0;
 }
 
 void EventLoop::quit() {

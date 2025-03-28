@@ -30,7 +30,10 @@ public:
     ~EventLoop();
 
     void loop();    // 开启事件循环
+    int OnTick(); // Tick触发
 
+    void set_quit(bool quit = true) { m_quit = quit; }
+    bool is_quit() const { return m_quit; }
     void quit();
 
     Timestamp pollReturnTime() const {

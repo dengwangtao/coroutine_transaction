@@ -52,43 +52,44 @@ private:
     #define LOG_DEBUG(logMsgFormat, ...) 
 #endif
 
+#define DISENABLE_NET_LOG
 
+#ifndef DISENABLE_NET_LOG
 
+#define LOG_ALL(logMsgFormat, ...)                      \
+    char buf[1024] = {0};                               \
+    snprintf(buf, 1024, logMsgFormat, ##__VA_ARGS__);   \
+    logger.log(buf);
+#else
+    #define LOG_ALL(logMsgFormat, ...)
+#endif
 
 #define LOG_INFO(logMsgFormat, ...)                     \
 do {                                                    \
     dwt::Logger& logger = dwt::Logger::getInstance();   \
     logger.setLogLevel(dwt::LogLevel::INFO);            \
-    char buf[1024] = {0};                               \
-    snprintf(buf, 1024, logMsgFormat, ##__VA_ARGS__);   \
-    logger.log(buf);                                    \
+    LOG_ALL(logMsgFormat, ##__VA_ARGS__)                \
 } while(0);
 
 #define LOG_WARN(logMsgFormat, ...)                     \
 do {                                                    \
     dwt::Logger& logger = dwt::Logger::getInstance();   \
     logger.setLogLevel(dwt::LogLevel::WARN);            \
-    char buf[1024] = {0};                               \
-    snprintf(buf, 1024, logMsgFormat, ##__VA_ARGS__);   \
-    logger.log(buf);                                    \
+    LOG_ALL(logMsgFormat, ##__VA_ARGS__)                \
 } while(0);
 
 #define LOG_ERROR(logMsgFormat, ...)                    \
 do {                                                    \
     dwt::Logger& logger = dwt::Logger::getInstance();   \
     logger.setLogLevel(dwt::LogLevel::ERROR);           \
-    char buf[1024] = {0};                               \
-    snprintf(buf, 1024, logMsgFormat, ##__VA_ARGS__);   \
-    logger.log(buf);                                    \
+    LOG_ALL(logMsgFormat, ##__VA_ARGS__)                \
 } while(0);
 
 #define LOG_FATAL(logMsgFormat, ...)                    \
 do {                                                    \
     dwt::Logger& logger = dwt::Logger::getInstance();   \
     logger.setLogLevel(dwt::LogLevel::FATAL);           \
-    char buf[1024] = {0};                               \
-    snprintf(buf, 1024, logMsgFormat, ##__VA_ARGS__);   \
-    logger.log(buf);                                    \
+    LOG_ALL(logMsgFormat, ##__VA_ARGS__)                \
     exit(-1);                                           \
 } while(0);
 

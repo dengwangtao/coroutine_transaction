@@ -71,12 +71,16 @@ public:
     }
 };
 
+#ifdef PROJECT_ROOT_DIR
 // 定义宏，将绝对路径转换为相对路径
 #define __RELATIVE_FILE__ ( \
     strstr(__FILE__, PROJECT_ROOT_DIR) ? \
     strstr(__FILE__, PROJECT_ROOT_DIR) + strlen(PROJECT_ROOT_DIR) : \
     __FILE__ \
 )
+#else
+#define __RELATIVE_FILE__ __FILE__
+#endif
 
 // 函数名宏
 #ifdef USE_PRETTY_FUNCTION
