@@ -85,6 +85,7 @@ s32 DemoTransactionServer::Start()
     {
         TransactionServer::OnTick();
         event_loop_->OnTick();
+        // LogTrace() << _LogKV("current_co_id", co_scheduler()->curr_routine_id());
     }
 
     return 0;
@@ -103,7 +104,7 @@ void DemoTransactionServer::OnConnection(const dwt::TcpConnectionPtr& conn)
     else
     {
         auto peer_id = g_peer_mgr.add_peer(peer);
-        LogInfo() << "new connection from " << peer << " peer_id=" << peer_id;
+        LogInfo()<< _LogKV("current_co_id", co_scheduler()->curr_routine_id()) << "new connection from " << peer << " peer_id=" << peer_id;
     }
 }
 
@@ -120,6 +121,7 @@ void DemoTransactionServer::OnMessage(const dwt::TcpConnectionPtr& conn, dwt::Bu
 
     std::string data = buf->retrieveAllAsString();
     LogInfo()   << "[thread=" << std::this_thread::get_id() << "] " 
+                << _LogKV("current_co_id", co_scheduler()->curr_routine_id())
                 << "receive data from " << conn->peerAddress().toIpPort() << " data=" << data;
 
     std::string ret_str;
